@@ -7,7 +7,8 @@ import "./MockSession.css";
 const MockSession = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { role, experience, company, selectedTopic, difficulty, mode, interviewData } =
+  // --- UPDATED: Removed 'mode' from destructuring ---
+  const { role, experience, company, selectedTopic, difficulty, interviewData } =
     location.state || {};
 
   const [messages, setMessages] = useState([]);
@@ -31,15 +32,16 @@ const MockSession = () => {
     setLoading(true);
 
     try {
+      // NOTE: previousMessages is sent here but not used by the current backend
       const res = await axios.post("http://localhost:5000/api/interview/respond", {
         userMessage: userInput,
-        previousMessages: newMessages,
+        previousMessages: newMessages, 
         role,
         experience,
         company,
         topic: selectedTopic,
         difficulty,
-        mode,
+        // mode, // Removed unused prop
       });
 
       const aiResponse = res.data.response || "No response received.";
@@ -86,7 +88,8 @@ const MockSession = () => {
         <div className="session-header">
           <h3>Mock Interview Session</h3>
           <p>
-            Role: <b>{role}</b> | Topic: <b>{selectedTopic}</b> | Mode: <b>{mode}</b>
+            Role: <b>{role}</b> | Topic: <b>{selectedTopic}</b> | Difficulty: <b>{difficulty}</b>
+            {/* --- UPDATED: Removed Mode Display --- */}
           </p>
         </div>
 

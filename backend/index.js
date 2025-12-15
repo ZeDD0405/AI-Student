@@ -2,13 +2,19 @@ require("dotenv").config();
 const cors = require("cors");
 const express = require("express");
 const mongoose = require("mongoose");
+// const multer = require("multer"); // Multer is now correctly used inside interviewRoutes
+
 const interviewRoutes = require("./routes/interviewRoutes");
 const authRoutes = require("./routes/authRoutes");
 
 const app = express();
-app.use(express.json());
+
+// ---------------- Middleware ----------------
+// Allows the app to handle JSON bodies
+app.use(express.json()); 
 
 // ---------------- CORS ----------------
+// Allows frontend to communicate with backend
 app.use(
   cors({
     origin: process.env.FRONTEND_URL || "http://localhost:5173",
@@ -19,8 +25,10 @@ app.use(
 
 // ---------------- MongoDB Connection ----------------
 mongoose
-  .connect("mongodb://127.0.0.1:27017/practice_mern", {
-    useNewUrlParser: true,
+  .connect(process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/practice_mern", {
+    // Note: useNewUrlParser and useUnifiedTopology are often not needed in recent Mongoose versions, 
+    // but they don't hurt if you are on an older version.
+    useNewUrlParser: true, 
     useUnifiedTopology: true,
   })
   .then(() => console.log("✅ MongoDB connected"))

@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import "bootstrap/dist/css/bootstrap.min.css";
-import "./StartMockInterview.css";
+import "./StartMockInterview.css"; // Assuming CSS remains the same
 
 const StartMockInterview = () => {
   const navigate = useNavigate();
@@ -13,9 +13,9 @@ const StartMockInterview = () => {
     company: "",
     selectedTopic: "",
     difficulty: "",
-    mode: "",
   });
 
+  const [resumeFile, setResumeFile] = useState(null);
   const [loading, setLoading] = useState(false);
 
   // ---------------- Handle Input Change ----------------
@@ -23,24 +23,36 @@ const StartMockInterview = () => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
+  // ---------------- Handle File Change ----------------
+  const handleFileChange = (e) => {
+    setResumeFile(e.target.files[0]);
+  };
+
   // ---------------- Handle Start Interview ----------------
   const handleStart = async () => {
-    const { role, experience, company, selectedTopic, difficulty, mode } = formData;
+    const { role, experience, company, selectedTopic, difficulty } = formData;
 
-    if (!role || !experience || !company || !selectedTopic || !difficulty || !mode) {
-      alert("⚠️ Please fill out all fields before starting your mock interview!");
+    if (!role || !experience || !company || !selectedTopic || !difficulty || !resumeFile) {
+      alert("⚠️ Please fill out all fields and upload your resume before starting your mock interview!");
       return;
     }
 
     try {
       setLoading(true);
 
-      // ✅ Send interview details to backend to save in DB
+      // Create FormData object to send both form fields and the file
+      const interviewData = new FormData();
+      Object.keys(formData).forEach(key => {
+        interviewData.append(key, formData[key]);
+      });
+      interviewData.append("resume", resumeFile);
+
+      // ✅ Send interview details and resume to backend
       const res = await axios.post(
         "http://localhost:5000/api/interview/start",
-        formData,
+        interviewData, // Use FormData for multipart/form-data
         {
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "multipart/form-data" }, // Axios handles this automatically for FormData, but explicit is fine
         }
       );
 
@@ -50,7 +62,7 @@ const StartMockInterview = () => {
       navigate("/mock-session", { state: { ...formData, interviewData: res.data } });
     } catch (error) {
       console.error("❌ Error starting mock interview:", error);
-      alert("Unable to start mock interview. Please ensure backend is running on port 5000.");
+      alert("Unable to start mock interview. Please ensure backend is running and can handle file uploads.");
     } finally {
       setLoading(false);
     }
@@ -138,24 +150,23 @@ const StartMockInterview = () => {
           </div>
         </div>
 
-        {/* Mode Buttons */}
+        {/* RESUME UPLOAD SECTION (NEW) */}
         <div className="mb-4">
-          <label className="form-label fw-semibold">Interview Mode</label>
-          <div className="btn-group-container">
-            {["Voice", "Text"].map((m) => (
-              <button
-                key={m}
-                type="button"
-                className={`btn ${
-                  formData.mode === m ? "btn-success" : "btn-outline-success"
-                }`}
-                onClick={() => setFormData((prev) => ({ ...prev, mode: m }))}
-              >
-                {m}
-              </button>
-            ))}
-          </div>
+          <label className="form-label fw-semibold">Upload Your Resume (PDF)</label>
+          <input
+            type="file"
+            className="form-control"
+            accept="application/pdf"
+            name="resume"
+            onChange={handleFileChange}
+          />
+          {resumeFile && (
+            <p className="text-success mt-2 mb-0 small">
+              File selected: **{resumeFile.name}**
+            </p>
+          )}
         </div>
+        {/* END NEW SECTION */}
 
         {/* Submit Button */}
         <div className="text-center mt-4">
