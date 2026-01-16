@@ -4,6 +4,9 @@ const express = require("express");
 const mongoose = require("mongoose");
 const interviewRoutes = require("./routes/interviewRoutes");
 const authRoutes = require("./routes/authRoutes");
+const teacherRoutes = require("./routes/teacherRoutes");
+const testRoutes = require("./routes/testRoutes");
+const testResultRoutes = require("./routes/testResultRoutes");
 
 const app = express();
 app.use(express.json());
@@ -12,7 +15,7 @@ app.use(express.json());
 app.use(
   cors({
     origin: process.env.FRONTEND_URL || "http://localhost:5173",
-    methods: ["GET", "POST"],
+    methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true,
   })
 );
@@ -29,6 +32,9 @@ mongoose
 // ---------------- Modular Routes ----------------
 app.use("/api/auth", authRoutes);
 app.use("/api/interview", interviewRoutes);
+app.use("/api/teacher", teacherRoutes);
+app.use("/api/test", testRoutes);
+app.use("/api/test-result", testResultRoutes);
 
 // ---------------- Default Route ----------------
 app.get("/", (req, res) => {

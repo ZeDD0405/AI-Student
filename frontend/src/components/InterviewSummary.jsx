@@ -1,19 +1,26 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import axios from "axios";
 import "./InterviewSummary.css";
 
 const InterviewSummary = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { summary } = location.state || {};
+  const { summary, interviewData } = location.state || {};
 
   const [parsedSummary, setParsedSummary] = useState({
     confidence: "N/A",
     nervousness: "N/A",
     weakAreas: [],
     strongAreas: [],
-    videos: [],
+    overallSummary: "",
+    technicalScore: 0,
+    communicationScore: 0,
+    recommendation: "",
   });
+
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     if (summary) {
@@ -40,17 +47,61 @@ const InterviewSummary = () => {
     }
   }, [summary]);
 
-  // Extract YouTube video ID from a link
-  const extractYouTubeID = (url) => {
+  // Save interview summary to database
+  const handleSaveInterview = async () => {
     try {
-      const regExp =
-        /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/;
-      const match = url.match(regExp);
-      return match ? match[1] : null;
-    } catch {
-      return null;
+      setSaving(true);
+
+      const rollNo = localStorage.getItem("rollNo");
+      const studentName = localStorage.getItem("studentName");
+
+      if (!rollNo || !studentName) {
+        alert("User information not found. Please login again.");
+        navigate("/login");
+        return;
+      }
+
+      const today = new Date().toISOString().split('T')[0];
+
+      const interviewPayload = {
+        rollNo,
+        studentName,
+        date: today,
+        role: interviewData?.role || "N/A",
+        company: interviewData?.company || "N/A",
+        experience: interviewData?.experience || "N/A",
+        topic: interviewData?.topic || "N/A",
+        difficulty: interviewData?.difficulty || "N/A",
+        confidence: parsedSummary.confidence || summary?.confidence || "N/A",
+        nervousness: parsedSummary.nervousness || summary?.nervousness || "N/A",
+        weakAreas: parsedSummary.weakAreas || [],
+        strongAreas: parsedSummary.strongAreas || [],
+        focusAreas: [interviewData?.topic || "General"],
+        overallSummary: parsedSummary.overallSummary || summary?.overallSummary || "",
+        technicalScore: parsedSummary.technicalScore || summary?.technicalScore || 0,
+        communicationScore: parsedSummary.communicationScore || summary?.communicationScore || 0,
+        recommendation: parsedSummary.recommendation || summary?.recommendation || "",
+        resumeText: interviewData?.resumeText || "",
+        messages: interviewData?.messages || []
+      };
+
+      const response = await axios.post(
+        "http://localhost:5000/api/interview/save",
+        interviewPayload
+      );
+
+      if (response.data.success) {
+        setSaved(true);
+        alert("Interview saved successfully!");
+      }
+    } catch (error) {
+      console.error("Error saving interview:", error);
+      alert("Failed to save interview. Please try again.");
+    } finally {
+      setSaving(false);
     }
   };
+
 
   return (
     <div className="summary-container">
@@ -58,78 +109,123 @@ const InterviewSummary = () => {
 
       <div className="summary-content">
         <div className="summary-section">
-          <h3>Confidence</h3>
-          <p>{parsedSummary.confidence || summary?.confidence}</p>
+          <h3>Overall Summary</h3>
+          <p className="overall-summary-text">
+            {parsedSummary.overallSummary || summary?.overallSummary || "No overall summary available."}
+          </p>
         </div>
 
         <div className="summary-section">
-          <h3>Nervousness</h3>
-          <p>{parsedSummary.nervousness || summary?.nervousness}</p>
+          <h3>Confidence Level</h3>
+          <p>
+            <span className={`badge ${
+              (parsedSummary.confidence || summary?.confidence) === 'High' ? 'bg-success' :
+              (parsedSummary.confidence || summary?.confidence) === 'Medium' ? 'bg-warning' :
+              'bg-danger'
+            }`}>
+              {parsedSummary.confidence || summary?.confidence || "N/A"}
+            </span>
+          </p>
         </div>
 
         <div className="summary-section">
-          <h3>Weak Areas</h3>
+          <h3>Nervousness Level</h3>
+          <p>
+            <span className={`badge ${
+              (parsedSummary.nervousness || summary?.nervousness) === 'Low' ? 'bg-success' :
+              (parsedSummary.nervousness || summary?.nervousness) === 'Medium' ? 'bg-warning' :
+              'bg-danger'
+            }`}>
+              {parsedSummary.nervousness || summary?.nervousness || "N/A"}
+            </span>
+          </p>
+        </div>
+
+        <div className="summary-section">
+          <h3>Interview Performance Scores</h3>
+          <div className="d-flex gap-4 align-items-center">
+            <div>
+              <p className="mb-1"><strong>Technical Skills:</strong></p>
+              <div className="progress" style={{ width: '200px', height: '25px' }}>
+                <div
+                  className="progress-bar bg-info"
+                  role="progressbar"
+                  style={{ width: `${(parsedSummary.technicalScore || summary?.technicalScore || 0) * 10}%` }}
+                  aria-valuenow={parsedSummary.technicalScore || summary?.technicalScore || 0}
+                  aria-valuemin="0"
+                  aria-valuemax="10"
+                >
+                  {parsedSummary.technicalScore || summary?.technicalScore || 0}/10
+                </div>
+              </div>
+            </div>
+            <div>
+              <p className="mb-1"><strong>Communication:</strong></p>
+              <div className="progress" style={{ width: '200px', height: '25px' }}>
+                <div
+                  className="progress-bar bg-success"
+                  role="progressbar"
+                  style={{ width: `${(parsedSummary.communicationScore || summary?.communicationScore || 0) * 10}%` }}
+                  aria-valuenow={parsedSummary.communicationScore || summary?.communicationScore || 0}
+                  aria-valuemin="0"
+                  aria-valuemax="10"
+                >
+                  {parsedSummary.communicationScore || summary?.communicationScore || 0}/10
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="summary-section">
+          <h3>Recommendation</h3>
+          <p>
+            <span className={`badge ${
+              (parsedSummary.recommendation || summary?.recommendation) === 'Highly Recommended' ? 'bg-success' :
+              (parsedSummary.recommendation || summary?.recommendation) === 'Recommended' ? 'bg-primary' :
+              'bg-danger'
+            } fs-6`}>
+              {parsedSummary.recommendation || summary?.recommendation || "N/A"}
+            </span>
+          </p>
+        </div>
+
+        <div className="summary-section">
+          <h3>Areas for Improvement</h3>
           {parsedSummary.weakAreas?.length ? (
-            <ul>
+            <ul className="list-group">
               {parsedSummary.weakAreas.map((area, index) => (
-                <li key={index}>{area}</li>
+                <li key={index} className="list-group-item">{area}</li>
               ))}
             </ul>
           ) : (
-            <p>None identified.</p>
+            <p className="text-muted">No specific areas identified.</p>
           )}
         </div>
 
         <div className="summary-section">
           <h3>Strong Areas</h3>
           {parsedSummary.strongAreas?.length ? (
-            <ul>
+            <ul className="list-group">
               {parsedSummary.strongAreas.map((area, index) => (
-                <li key={index}>{area}</li>
+                <li key={index} className="list-group-item list-group-item-success">{area}</li>
               ))}
             </ul>
           ) : (
-            <p>None identified.</p>
-          )}
-        </div>
-
-        <div className="summary-section">
-          <h3>YouTube Recommendations</h3>
-          {parsedSummary.videos?.length ? (
-            <div className="video-grid">
-              {parsedSummary.videos.map((url, index) => {
-                const videoId = extractYouTubeID(url);
-                return videoId ? (
-                  <div key={index} className="video-card">
-                    <iframe
-                      src={`https://www.youtube.com/embed/${videoId}`}
-                      title={`YouTube video ${index + 1}`}
-                      frameBorder="0"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                    ></iframe>
-                  </div>
-                ) : (
-                  <a
-                    key={index}
-                    href={url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="yt-link"
-                  >
-                    Watch Video {index + 1}
-                  </a>
-                );
-              })}
-            </div>
-          ) : (
-            <p>No links available.</p>
+            <p className="text-muted">No specific areas identified.</p>
           )}
         </div>
       </div>
 
       {/* Button Section */}
       <div className="button-container">
+        <button
+          className="btn btn-success btn-lg"
+          onClick={handleSaveInterview}
+          disabled={saving || saved}
+        >
+          {saving ? "Saving..." : saved ? "Saved ✓" : "Save Interview Summary"}
+        </button>
         <button className="dashboard-btn" onClick={() => navigate("/mock-interview")}>
           Go to Dashboard
         </button>

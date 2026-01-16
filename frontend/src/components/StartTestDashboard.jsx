@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { Line } from "react-chartjs-2";
 import {
@@ -26,38 +27,60 @@ ChartJS.register(
 
 const StartTestDashboard = () => {
   const [studentName, setStudentName] = useState("");
-  const [tests, setTests] = useState([]);
-  const [history, setHistory] = useState([]);
+  const [rollNo, setRollNo] = useState("");
+  const [publishedTests, setPublishedTests] = useState([]);
+  const [submittedResults, setSubmittedResults] = useState([]);
+  const [pendingTests, setPendingTests] = useState([]);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
     const name = localStorage.getItem("studentName");
-    const rollNo = localStorage.getItem("rollNo");
+    const roll = localStorage.getItem("rollNo");
 
-    if (!name || !rollNo) {
+    if (!name || !roll) {
       navigate("/login");
     } else {
       setStudentName(name);
-
-      // Available tests
-      setTests([
-        { id: 1, title: "JavaScript Fundamentals", description: "Test your core JS knowledge." },
-        { id: 2, title: "React Basics", description: "Check your understanding of React." },
-        { id: 3, title: "Data Structures", description: "Assess your understanding of DSA concepts." },
-        { id: 4, title: "Algorithms", description: "Test problem-solving skills and algorithms." },
-        { id: 5, title: "Behavioral Test", description: "Evaluate communication and behavioral skills." },
-      ]);
-
-      // Previous test history for chart + carousel
-      setHistory([
-        { id: 1, title: "JavaScript Fundamentals", score: 85, accuracy: 90 },
-        { id: 2, title: "React Basics", score: 70, accuracy: 75 },
-        { id: 3, title: "Data Structures", score: 95, accuracy: 92 },
-        { id: 4, title: "Algorithms", score: 60, accuracy: 65 },
-        { id: 5, title: "Behavioral Test", score: 80, accuracy: 85 },
-      ]);
+      setRollNo(roll);
+      fetchData(roll);
     }
   }, [navigate]);
+
+  const fetchData = async (roll) => {
+    try {
+      setLoading(true);
+
+      // Fetch published tests
+      const testsResponse = await axios.get("http://localhost:5000/api/test/published");
+
+      // Fetch student's submitted results
+      const resultsResponse = await axios.get(`http://localhost:5000/api/test-result/student/${roll}`);
+
+      if (testsResponse.data && testsResponse.data.success) {
+        const allTests = testsResponse.data.tests;
+        setPublishedTests(allTests);
+
+        if (resultsResponse.data && resultsResponse.data.success) {
+          const results = resultsResponse.data.results;
+          setSubmittedResults(results);
+
+          // Calculate pending tests (tests not yet taken)
+          const submittedTestIds = results.map(r => r.testId?._id);
+          const pending = allTests.filter(test => !submittedTestIds.includes(test._id));
+          setPendingTests(pending);
+        } else {
+          // No results yet, all tests are pending
+          setPendingTests(allTests);
+        }
+      }
+
+      setLoading(false);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      setLoading(false);
+    }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem("studentName");
@@ -69,23 +92,45 @@ const StartTestDashboard = () => {
     navigate(`/test/${testId}`);
   };
 
-  // Chart data
+  const getScoreClass = (score) => {
+    if (score >= 90) return "text-success";
+    if (score >= 70) return "text-primary";
+    if (score >= 50) return "text-warning";
+    return "text-danger";
+  };
+
+  const getScoreBadgeClass = (score) => {
+    if (score >= 90) return "bg-success";
+    if (score >= 70) return "bg-primary";
+    if (score >= 50) return "bg-warning";
+    return "bg-danger";
+  };
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  // Chart data from real submitted results
   const chartData = {
-    labels: history.map((t) => t.title),
+    labels: submittedResults.map((result) => result.testId?.title || "Test"),
     datasets: [
       {
-        label: "Score",
-        data: history.map((t) => t.score),
-        borderColor: "#00d5ff",
-        backgroundColor: "rgba(0, 213, 255, 0.2)",
-        tension: 0.3,
-      },
-      {
-        label: "Accuracy",
-        data: history.map((t) => t.accuracy),
-        borderColor: "#ff4d6d",
-        backgroundColor: "rgba(255, 77, 109, 0.2)",
-        tension: 0.3,
+        label: "Score (%)",
+        data: submittedResults.map((result) => result.score),
+        borderColor: "#004b8d",
+        backgroundColor: "rgba(0, 75, 141, 0.1)",
+        tension: 0.4,
+        fill: true,
+        pointBackgroundColor: "#004b8d",
+        pointBorderColor: "#fff",
+        pointBorderWidth: 2,
+        pointRadius: 6,
+        pointHoverRadius: 8,
       },
     ],
   };
@@ -93,48 +138,68 @@ const StartTestDashboard = () => {
   const chartOptions = {
     responsive: true,
     plugins: {
-      legend: { position: "top" },
-      title: { display: true, text: "Past Test Performance" },
+      legend: {
+        position: "top",
+        labels: {
+          font: {
+            size: 14,
+            weight: 'bold'
+          }
+        }
+      },
+      title: {
+        display: true,
+        text: "Your Test Score Performance",
+        font: {
+          size: 18,
+          weight: 'bold'
+        },
+        color: '#004b8d'
+      },
     },
     scales: {
       y: {
         min: 0,
         max: 100,
-        ticks: { stepSize: 10, callback: (val) => `${val}%` },
+        ticks: {
+          stepSize: 10,
+          callback: (val) => `${val}%`,
+          font: {
+            size: 12
+          }
+        },
+        grid: {
+          color: 'rgba(0, 0, 0, 0.05)'
+        }
       },
+      x: {
+        ticks: {
+          font: {
+            size: 11
+          }
+        },
+        grid: {
+          display: false
+        }
+      }
     },
   };
-
-  // Chunk history for carousel
-  const chunkArray = (arr, chunkSize) => {
-    const chunks = [];
-    for (let i = 0; i < arr.length; i += chunkSize) {
-      chunks.push(arr.slice(i, i + chunkSize));
-    }
-    return chunks;
-  };
-
-  const [chunkSize, setChunkSize] = useState(3);
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth < 768) setChunkSize(1);
-      else if (window.innerWidth < 992) setChunkSize(2);
-      else setChunkSize(3);
-    };
-    handleResize();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
-  const slides = chunkArray(history, chunkSize);
 
   return (
     <div className="start-test-wrapper">
       {/* Navbar */}
       <nav className="navbar navbar-expand-lg navbar-dark navbar-custom px-4">
-        <h3 className="navbar-brand fw-bold mb-0">Start Test Dashboard</h3>
-        <div className="ms-auto d-flex align-items-center">
-          <span className="me-3 fw-semibold">Hi, {studentName || "Student"}</span>
+        <h3 className="navbar-brand fw-bold mb-0">Test Series Dashboard</h3>
+        <div className="ms-auto d-flex align-items-center gap-3">
+          <button
+            onClick={() => navigate("/home")}
+            className="btn btn-light btn-sm fw-semibold"
+          >
+            🏠 Home
+          </button>
+          <span className="fw-semibold text-white">
+            Hi, {studentName || "Student"}
+          </span>
           <button onClick={handleLogout} className="btn btn-outline-light btn-sm">
             Logout
           </button>
@@ -142,63 +207,181 @@ const StartTestDashboard = () => {
       </nav>
 
       <div className="container py-5">
-        {/* Chart */}
-        {history.length > 0 && (
-          <div className="card shadow-sm mb-5 p-4">
-            <Line data={chartData} options={chartOptions} />
+        {loading ? (
+          <div className="text-center py-5">
+            <div className="spinner-border text-primary" role="status">
+              <span className="visually-hidden">Loading...</span>
+            </div>
+            <p className="mt-3">Loading tests...</p>
           </div>
-        )}
-
-        {/* History Carousel */}
-        {history.length > 0 && (
-          <div id="historyCarousel" className="carousel slide mb-5" data-bs-ride="carousel">
-            <div className="carousel-inner">
-              {slides.map((slide, idx) => (
-                <div className={`carousel-item ${idx === 0 ? "active" : ""}`} key={idx}>
-                  <div className="d-flex justify-content-center gap-3 flex-wrap">
-                    {slide.map((test) => (
-                      <div key={test.id} className="card shadow-sm p-4 hover-card" style={{ width: "18rem" }}>
-                        <h5 className="fw-bold mb-3">{test.title}</h5>
-                        <p><strong>Score:</strong> {test.score}%</p>
-                        <p><strong>Accuracy:</strong> {test.accuracy}%</p>
-                      </div>
-                    ))}
-                  </div>
+        ) : (
+          <>
+            {/* Score Performance Chart */}
+            {submittedResults.length > 0 && (
+              <div className="mb-5">
+                <h2 className="mb-4 text-center" style={{color: '#004b8d', fontWeight: '700'}}>
+                  Your Test Score Performance
+                </h2>
+                <div className="card shadow-sm p-4">
+                  <Line data={chartData} options={chartOptions} />
                 </div>
-              ))}
-            </div>
-            <button className="carousel-control-prev" type="button" data-bs-target="#historyCarousel" data-bs-slide="prev">
-              <span className="carousel-control-prev-icon" aria-hidden="true"></span>
-              <span className="visually-hidden">Previous</span>
-            </button>
-            <button className="carousel-control-next" type="button" data-bs-target="#historyCarousel" data-bs-slide="next">
-              <span className="carousel-control-next-icon" aria-hidden="true"></span>
-              <span className="visually-hidden">Next</span>
-            </button>
-          </div>
-        )}
-
-        {/* Test Option Cards */}
-        <div className="row g-4">
-          {tests.map((test) => (
-            <div key={test.id} className="col-md-6 col-lg-4">
-              <div className="card shadow-sm p-4 hover-card test-card">
-                <h5 className="fw-bold mb-3">{test.title}</h5>
-                <p>{test.description}</p>
-                <button
-                  className="btn btn-primary mt-3 w-100"
-                  onClick={() => startTest(test.id)}
-                >
-                  Start Test
-                </button>
               </div>
+            )}
+
+            {/* Pending Tests Section */}
+            <div className="mb-5">
+              <h3 className="mb-4" style={{color: '#004b8d', fontWeight: '700'}}>
+                <i className="bi bi-hourglass-split me-2"></i>
+                Pending Tests
+              </h3>
+              {pendingTests.length === 0 ? (
+                <div className="text-center py-5">
+                  <i className="bi bi-check-circle" style={{fontSize: '3rem', color: '#28a745'}}></i>
+                  <h5 className="mt-3 text-success">All Caught Up!</h5>
+                  <p className="text-muted">You have completed all available tests</p>
+                </div>
+              ) : (
+                <div className="row g-4">
+                  {pendingTests.map((test) => (
+                    <div key={test._id} className="col-md-6 col-lg-4">
+                      <div className="card shadow-sm p-4 hover-card test-card">
+                        <div className="d-flex justify-content-between align-items-start mb-3">
+                          <h5 className="fw-bold mb-0">{test.title}</h5>
+                          <span className="badge bg-primary">{test.subject}</span>
+                        </div>
+                        <p className="text-muted mb-3">{test.description}</p>
+                        <div className="d-flex flex-wrap align-items-center gap-3 mb-3">
+                          <div className="d-flex align-items-center gap-2">
+                            <i className="bi bi-question-circle" style={{color: '#004b8d'}}></i>
+                            <small className="text-muted">{test.totalQuestions} Questions</small>
+                          </div>
+                          <div className="d-flex align-items-center gap-2">
+                            <i className="bi bi-clock" style={{color: '#004b8d'}}></i>
+                            <small className="text-muted">{test.timeLimit} Minutes</small>
+                          </div>
+                        </div>
+                        <button
+                          className="btn btn-primary mt-auto w-100"
+                          onClick={() => startTest(test._id)}
+                        >
+                          <i className="bi bi-play-circle me-2"></i>
+                          Start Test
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-          ))}
-        </div>
+
+            {/* Submitted Tests Section */}
+            <div className="mb-5">
+              <h3 className="mb-4" style={{color: '#004b8d', fontWeight: '700'}}>
+                <i className="bi bi-check2-square me-2"></i>
+                Submitted Tests
+              </h3>
+              {submittedResults.length === 0 ? (
+                <div className="text-center py-5">
+                  <i className="bi bi-clipboard-x" style={{fontSize: '3rem', color: '#6c757d'}}></i>
+                  <h5 className="mt-3 text-muted">No Tests Submitted Yet</h5>
+                  <p className="text-muted">Start taking tests to see your results here</p>
+                </div>
+              ) : (
+                <div className="row g-4">
+                  {submittedResults.map((result) => (
+                    <div key={result._id} className="col-md-6 col-lg-4">
+                      <div className="card shadow-sm hover-card test-result-card">
+                        <div className="card-body">
+                          {/* Header with badge */}
+                          <div className="d-flex justify-content-between align-items-start mb-3">
+                            <h5 className="card-title fw-bold mb-0">
+                              {result.testId?.title || "Test"}
+                            </h5>
+                            <span className={`badge ${getScoreBadgeClass(result.score)}`}>
+                              {result.score >= 50 ? 'Passed' : 'Failed'}
+                            </span>
+                          </div>
+
+                          {/* Subject */}
+                          <div className="mb-3">
+                            <span className="badge bg-info">
+                              {result.testId?.subject || "N/A"}
+                            </span>
+                          </div>
+
+                          {/* Score Display */}
+                          <div className="score-display-box mb-3">
+                            <div className="d-flex justify-content-between align-items-center">
+                              <div>
+                                <h2 className={`mb-0 fw-bold ${getScoreClass(result.score)}`}>
+                                  {result.score}%
+                                </h2>
+                                <small className="text-muted">Score</small>
+                              </div>
+                              <div className="text-end">
+                                <h4 className="mb-0 fw-bold text-secondary">
+                                  {result.correctAnswers}/{result.totalQuestions}
+                                </h4>
+                                <small className="text-muted">Correct</small>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Details */}
+                          <div className="test-details mb-3">
+                            <div className="d-flex align-items-center gap-2 mb-2">
+                              <i className="bi bi-calendar3" style={{color: '#004b8d'}}></i>
+                              <small className="text-muted">
+                                Submitted: {formatDate(result.submittedAt)}
+                              </small>
+                            </div>
+                            {result.tabSwitchCount > 0 && (
+                              <div className="d-flex align-items-center gap-2">
+                                <i className="bi bi-exclamation-triangle text-warning"></i>
+                                <small className="text-warning">
+                                  {result.tabSwitchCount} Tab Switch{result.tabSwitchCount > 1 ? 'es' : ''}
+                                </small>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Performance indicator */}
+                          <div className="performance-indicator">
+                            {result.score >= 90 ? (
+                              <div className="text-success">
+                                <i className="bi bi-trophy-fill me-2"></i>
+                                <small className="fw-semibold">Outstanding!</small>
+                              </div>
+                            ) : result.score >= 70 ? (
+                              <div className="text-primary">
+                                <i className="bi bi-star-fill me-2"></i>
+                                <small className="fw-semibold">Great Job!</small>
+                              </div>
+                            ) : result.score >= 50 ? (
+                              <div className="text-warning">
+                                <i className="bi bi-check-circle-fill me-2"></i>
+                                <small className="fw-semibold">Good Effort!</small>
+                              </div>
+                            ) : (
+                              <div className="text-danger">
+                                <i className="bi bi-x-circle-fill me-2"></i>
+                                <small className="fw-semibold">Keep Trying!</small>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </div>
 
       <footer className="footer-custom text-center py-3">
-        © {new Date().getFullYear()} Student Dashboard | All Rights Reserved
+        © {new Date().getFullYear()} Test Series Dashboard
       </footer>
     </div>
   );

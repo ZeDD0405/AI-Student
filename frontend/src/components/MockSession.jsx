@@ -7,7 +7,7 @@ import "./MockSession.css";
 const MockSession = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { role, experience, company, selectedTopic, difficulty, mode, interviewData } =
+  const { role, experience, company, selectedTopic, difficulty, resumeText, interviewData } =
     location.state || {};
 
   const [messages, setMessages] = useState([]);
@@ -39,7 +39,7 @@ const MockSession = () => {
         company,
         topic: selectedTopic,
         difficulty,
-        mode,
+        resumeText: resumeText || "",
       });
 
       const aiResponse = res.data.response || "No response received.";
@@ -64,7 +64,20 @@ const MockSession = () => {
         company,
       });
 
-      navigate("/interview-summary", { state: { summary: res.data.summary } });
+      navigate("/interview-summary", {
+        state: {
+          summary: res.data.summary,
+          interviewData: {
+            role,
+            company,
+            experience,
+            topic: selectedTopic,
+            difficulty,
+            resumeText: resumeText || "",
+            messages
+          }
+        }
+      });
     } catch (error) {
       console.error("Error generating summary:", error);
       alert("Failed to generate summary. Please try again.");
@@ -86,7 +99,7 @@ const MockSession = () => {
         <div className="session-header">
           <h3>Mock Interview Session</h3>
           <p>
-            Role: <b>{role}</b> | Topic: <b>{selectedTopic}</b> | Mode: <b>{mode}</b>
+            Role: <b>{role}</b> | Topic: <b>{selectedTopic}</b> | Company: <b>{company}</b>
           </p>
         </div>
 

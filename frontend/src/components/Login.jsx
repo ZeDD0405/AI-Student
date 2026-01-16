@@ -24,21 +24,41 @@ const Login = () => {
         setLoading(true);
 
         try {
-            console.log("Sending to backend:", { rollNo, password });
+            // Check if the input is an email (teacher login)
+            const isEmail = rollNo.includes("@");
 
-            const response = await axios.post("http://localhost:5000/api/auth/login", {
-                rollNo,
-                password
-            });
+            if (isEmail) {
+                // Teacher Login
+                const response = await axios.post("http://localhost:5000/api/teacher/login", {
+                    email: rollNo,
+                    password
+                });
 
-            if (response.data && response.data.message === "Login successful") {
-                localStorage.setItem("rollNo", response.data.user.rollNo);
-                localStorage.setItem("studentName", response.data.user.name);
+                if (response.data && response.data.success) {
+                    localStorage.setItem("teacherEmail", response.data.teacher.email);
+                    localStorage.setItem("teacherName", response.data.teacher.name);
 
-                setSuccess("Login successful! Redirecting...");
-                setTimeout(() => navigate("/home"), 1500);
+                    setSuccess("Teacher login successful! Redirecting...");
+                    setTimeout(() => navigate("/teacher-dashboard"), 1500);
+                } else {
+                    setError(response.data.error || "Invalid teacher credentials");
+                }
             } else {
-                setError(response.data.error || "Invalid credentials");
+                // Student Login
+                const response = await axios.post("http://localhost:5000/api/auth/login", {
+                    rollNo,
+                    password
+                });
+
+                if (response.data && response.data.message === "Login successful") {
+                    localStorage.setItem("rollNo", response.data.user.rollNo);
+                    localStorage.setItem("studentName", response.data.user.name);
+
+                    setSuccess("Login successful! Redirecting...");
+                    setTimeout(() => navigate("/home"), 1500);
+                } else {
+                    setError(response.data.error || "Invalid credentials");
+                }
             }
         } catch (err) {
             console.error("Login Error:", err);

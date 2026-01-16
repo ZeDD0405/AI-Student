@@ -1,0 +1,445 @@
+import React, { useState, useEffect, useRef } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import axios from "axios";
+import "bootstrap/dist/css/bootstrap.min.css";
+import "bootstrap-icons/font/bootstrap-icons.css";
+import "./TakeTest.css";
+
+const TakeTest = () => {
+  const { testId } = useParams();
+  const navigate = useNavigate();
+
+  const [test, setTest] = useState(null);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [answers, setAnswers] = useState([]);
+  const [timeRemaining, setTimeRemaining] = useState(0);
+  const [tabSwitchCount, setTabSwitchCount] = useState(0);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [startTime] = useState(Date.now());
+
+  const timerRef = useRef(null);
+  const documentVisibilityRef = useRef(true);
+
+  // Fetch test data
+  useEffect(() => {
+    const fetchTest = async () => {
+      try {
+        const studentName = localStorage.getItem("studentName");
+        const rollNo = localStorage.getItem("rollNo");
+
+        if (!studentName || !rollNo) {
+          alert("Please login to take the test");
+          navigate("/login");
+          return;
+        }
+
+        const response = await axios.get(`http://localhost:5000/api/test/${testId}`);
+        if (response.data && response.data.success) {
+          const testData = response.data.test;
+          setTest(testData);
+          setTimeRemaining(testData.timeLimit * 60); // Convert minutes to seconds
+
+          // Initialize answers array
+          const initialAnswers = testData.questions.map((_, index) => ({
+            questionIndex: index,
+            selectedAnswer: -1
+          }));
+          setAnswers(initialAnswers);
+          setLoading(false);
+
+          // Request fullscreen
+          requestFullscreen();
+        }
+      } catch (error) {
+        console.error("Error fetching test:", error);
+        alert("Failed to load test");
+        navigate("/start-test");
+      }
+    };
+
+    fetchTest();
+  }, [testId, navigate]);
+
+  // Timer countdown
+  useEffect(() => {
+    if (!test || loading || submitting) return;
+
+    timerRef.current = setInterval(() => {
+      setTimeRemaining(prev => {
+        if (prev <= 1) {
+          handleSubmitTest(true); // Auto-submit when time runs out
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, [test, loading, submitting]);
+
+  // Fullscreen management
+  const requestFullscreen = () => {
+    const elem = document.documentElement;
+    if (elem.requestFullscreen) {
+      elem.requestFullscreen().catch(err => {
+        console.log("Fullscreen request failed:", err);
+      });
+    } else if (elem.webkitRequestFullscreen) {
+      elem.webkitRequestFullscreen();
+    } else if (elem.msRequestFullscreen) {
+      elem.msRequestFullscreen();
+    }
+  };
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+
+      // If user exits fullscreen, request it again
+      if (!document.fullscreenElement && !submitting) {
+        setTimeout(() => {
+          requestFullscreen();
+        }, 1000);
+      }
+    };
+
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    document.addEventListener("webkitfullscreenchange", handleFullscreenChange);
+    document.addEventListener("mozfullscreenchange", handleFullscreenChange);
+    document.addEventListener("MSFullscreenChange", handleFullscreenChange);
+
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+      document.removeEventListener("webkitfullscreenchange", handleFullscreenChange);
+      document.removeEventListener("mozfullscreenchange", handleFullscreenChange);
+      document.removeEventListener("MSFullscreenChange", handleFullscreenChange);
+    };
+  }, [submitting]);
+
+  // Tab switch detection
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden && !submitting) {
+        documentVisibilityRef.current = false;
+        setTabSwitchCount(prev => prev + 1);
+        alert("⚠️ Warning: Tab switching is not allowed during the test! This incident has been recorded.");
+      } else {
+        documentVisibilityRef.current = true;
+      }
+    };
+
+    const handleBlur = () => {
+      if (!submitting) {
+        setTabSwitchCount(prev => prev + 1);
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("blur", handleBlur);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("blur", handleBlur);
+    };
+  }, [submitting]);
+
+  // Prevent back button and page refresh
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (!submitting) {
+        e.preventDefault();
+        e.returnValue = "Are you sure you want to leave? Your test progress will be lost.";
+        return e.returnValue;
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [submitting]);
+
+  // Handle answer selection
+  const handleAnswerSelect = (optionIndex) => {
+    const updatedAnswers = [...answers];
+    updatedAnswers[currentQuestionIndex].selectedAnswer = optionIndex;
+    setAnswers(updatedAnswers);
+  };
+
+  // Navigation
+  const goToNextQuestion = () => {
+    if (currentQuestionIndex < test.questions.length - 1) {
+      setCurrentQuestionIndex(currentQuestionIndex + 1);
+    }
+  };
+
+  const goToPreviousQuestion = () => {
+    if (currentQuestionIndex > 0) {
+      setCurrentQuestionIndex(currentQuestionIndex - 1);
+    }
+  };
+
+  const goToQuestion = (index) => {
+    setCurrentQuestionIndex(index);
+  };
+
+  // Submit test
+  const handleSubmitTest = async (autoSubmit = false) => {
+    if (!autoSubmit) {
+      const unanswered = answers.filter(a => a.selectedAnswer === -1).length;
+      if (unanswered > 0) {
+        if (!window.confirm(`You have ${unanswered} unanswered question(s). Do you still want to submit?`)) {
+          return;
+        }
+      } else {
+        if (!window.confirm("Are you sure you want to submit your test?")) {
+          return;
+        }
+      }
+    }
+
+    setSubmitting(true);
+
+    // Clear timer
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+    }
+
+    const timeTaken = Math.floor((Date.now() - startTime) / 1000);
+    const studentName = localStorage.getItem("studentName");
+    const rollNo = localStorage.getItem("rollNo");
+
+    try {
+      const response = await axios.post("http://localhost:5000/api/test-result/submit", {
+        testId,
+        studentName,
+        rollNo,
+        answers,
+        timeTaken,
+        tabSwitchCount
+      });
+
+      if (response.data && response.data.success) {
+        // Exit fullscreen
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        }
+
+        // Navigate to results page with result data
+        navigate("/test-result", {
+          state: {
+            result: response.data.result,
+            testTitle: test.title,
+            tabSwitchCount
+          }
+        });
+      }
+    } catch (error) {
+      console.error("Error submitting test:", error);
+      alert("Failed to submit test. Please try again.");
+      setSubmitting(false);
+    }
+  };
+
+  // Format time
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  if (loading) {
+    return (
+      <div className="take-test-loading">
+        <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">Loading...</span>
+        </div>
+        <p className="mt-3">Loading test...</p>
+      </div>
+    );
+  }
+
+  if (!test) {
+    return (
+      <div className="take-test-loading">
+        <p>Test not found</p>
+      </div>
+    );
+  }
+
+  const currentQuestion = test.questions[currentQuestionIndex];
+  const answeredCount = answers.filter(a => a.selectedAnswer !== -1).length;
+  const progressPercentage = (answeredCount / test.totalQuestions) * 100;
+
+  return (
+    <div className="take-test-container">
+      {/* Header */}
+      <div className="test-header-bar">
+        <div className="container-fluid">
+          <div className="row align-items-center">
+            <div className="col-md-4">
+              <h5 className="mb-0">
+                <i className="bi bi-file-text me-2"></i>
+                {test.title}
+              </h5>
+              <small className="text-muted">{test.subject}</small>
+            </div>
+            <div className="col-md-4 text-center">
+              <div className={`timer-display ${timeRemaining < 60 ? 'timer-warning' : ''}`}>
+                <i className="bi bi-clock me-2"></i>
+                <span className="time-text">{formatTime(timeRemaining)}</span>
+              </div>
+              {tabSwitchCount > 0 && (
+                <div className="tab-switch-warning mt-1">
+                  <i className="bi bi-exclamation-triangle me-1"></i>
+                  Tab Switches: {tabSwitchCount}
+                </div>
+              )}
+            </div>
+            <div className="col-md-4 text-end">
+              <button
+                className="btn btn-success"
+                onClick={() => handleSubmitTest(false)}
+                disabled={submitting}
+              >
+                <i className="bi bi-check-circle me-2"></i>
+                Submit Test
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Progress Bar */}
+      <div className="progress-container">
+        <div className="container-fluid">
+          <div className="progress" style={{height: '8px'}}>
+            <div
+              className="progress-bar bg-success"
+              role="progressbar"
+              style={{width: `${progressPercentage}%`}}
+              aria-valuenow={progressPercentage}
+              aria-valuemin="0"
+              aria-valuemax="100"
+            ></div>
+          </div>
+          <small className="text-muted">
+            {answeredCount} of {test.totalQuestions} questions answered
+          </small>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="container-fluid py-4">
+        <div className="row">
+          {/* Question Area */}
+          <div className="col-lg-9">
+            <div className="question-card">
+              <div className="question-header">
+                <h4>
+                  Question {currentQuestionIndex + 1} of {test.totalQuestions}
+                </h4>
+              </div>
+
+              <div className="question-body">
+                <p className="question-text">{currentQuestion.question}</p>
+
+                <div className="options-container">
+                  {currentQuestion.options.map((option, index) => (
+                    <div
+                      key={index}
+                      className={`option-item ${
+                        answers[currentQuestionIndex].selectedAnswer === index ? 'selected' : ''
+                      }`}
+                      onClick={() => handleAnswerSelect(index)}
+                    >
+                      <div className="option-radio">
+                        <input
+                          type="radio"
+                          name={`question-${currentQuestionIndex}`}
+                          checked={answers[currentQuestionIndex].selectedAnswer === index}
+                          onChange={() => handleAnswerSelect(index)}
+                        />
+                      </div>
+                      <div className="option-label">
+                        <span className="option-letter">{String.fromCharCode(65 + index)}.</span>
+                        <span className="option-text">{option}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Navigation Buttons */}
+              <div className="question-footer">
+                <button
+                  className="btn btn-outline-primary"
+                  onClick={goToPreviousQuestion}
+                  disabled={currentQuestionIndex === 0}
+                >
+                  <i className="bi bi-arrow-left me-2"></i>
+                  Previous
+                </button>
+
+                <button
+                  className="btn btn-primary"
+                  onClick={goToNextQuestion}
+                  disabled={currentQuestionIndex === test.questions.length - 1}
+                >
+                  Next
+                  <i className="bi bi-arrow-right ms-2"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Question Navigator */}
+          <div className="col-lg-3">
+            <div className="question-navigator">
+              <h6 className="mb-3">Question Navigator</h6>
+              <div className="question-grid">
+                {test.questions.map((_, index) => (
+                  <button
+                    key={index}
+                    className={`question-nav-btn ${
+                      index === currentQuestionIndex ? 'active' : ''
+                    } ${
+                      answers[index].selectedAnswer !== -1 ? 'answered' : ''
+                    }`}
+                    onClick={() => goToQuestion(index)}
+                  >
+                    {index + 1}
+                  </button>
+                ))}
+              </div>
+
+              <div className="legend mt-3">
+                <div className="legend-item">
+                  <span className="legend-color current"></span>
+                  <small>Current</small>
+                </div>
+                <div className="legend-item">
+                  <span className="legend-color answered"></span>
+                  <small>Answered</small>
+                </div>
+                <div className="legend-item">
+                  <span className="legend-color unanswered"></span>
+                  <small>Unanswered</small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default TakeTest;

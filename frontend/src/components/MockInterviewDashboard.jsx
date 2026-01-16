@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import axios from "axios";
 import "bootstrap/dist/css/bootstrap.min.css";
+import "bootstrap-icons/font/bootstrap-icons.css";
 import { Line } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -37,39 +39,24 @@ const MockInterviewDashboard = () => {
       navigate("/login");
     } else {
       setStudentName(name);
-
-      // ✅ Sample interviews
-      setInterviews([
-        {
-          id: 1,
-          date: "2025-10-20",
-          confidence: "High",
-          nervousness: "Low",
-          weakAreas: ["Data Structures", "Time Management"],
-          strongAreas: ["Communication", "Problem Solving"],
-          focusAreas: ["Algorithms"],
-        },
-        {
-          id: 2,
-          date: "2025-10-15",
-          confidence: "Medium",
-          nervousness: "Medium",
-          weakAreas: ["Behavioral Questions"],
-          strongAreas: ["Coding", "Logical Thinking"],
-          focusAreas: ["Behavioral"],
-        },
-        {
-          id: 3,
-          date: "2025-10-10",
-          confidence: "High",
-          nervousness: "Low",
-          weakAreas: ["React Hooks"],
-          strongAreas: ["CSS", "HTML"],
-          focusAreas: ["Frontend"],
-        },
-      ]);
+      fetchInterviews(rollNo);
     }
   }, [navigate]);
+
+  const fetchInterviews = async (rollNo) => {
+    try {
+      const response = await axios.get(
+        `http://localhost:5000/api/interview/user/${rollNo}`
+      );
+
+      if (response.data.success) {
+        setInterviews(response.data.interviews);
+      }
+    } catch (error) {
+      console.error("Error fetching interviews:", error);
+      setInterviews([]);
+    }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem("studentName");
@@ -195,41 +182,119 @@ const MockInterviewDashboard = () => {
                   key={idx}
                 >
                   <div className="d-flex justify-content-center gap-3 flex-wrap">
-                    {slide.map((interview) => (
+                    {slide.map((interview) => {
+                      // Extract only first word from confidence/nervousness (handle long text)
+                      const confidenceLevel = interview.confidence?.split('.')[0].split(' ')[0] || 'N/A';
+                      const nervousnessLevel = interview.nervousness?.split('.')[0].split(' ')[0] || 'N/A';
+
+                      // Show max 2 items for weak/strong areas
+                      const weakAreasDisplay = interview.weakAreas?.slice(0, 2) || [];
+                      const strongAreasDisplay = interview.strongAreas?.slice(0, 2) || [];
+
+                      return (
                       <div
-                        key={interview.id}
-                        className="card shadow-sm hover-card"
+                        key={interview._id}
+                        className="card shadow-sm hover-card interview-card"
                       >
                         <div className="card-content">
-                          <h5 className="fw-bold mb-3">{interview.date}</h5>
-                          <div className="mb-2">
-                            <span className="badge bg-success me-2">
-                              Confidence: {interview.confidence}
+                          <div className="interview-header">
+                            <h6 className="fw-bold mb-1 text-white">{interview.date}</h6>
+                          </div>
+
+                          {/* Interview Details Grid */}
+                          <div className="interview-details">
+                            <div className="detail-row">
+                              <i className="bi bi-briefcase-fill text-primary"></i>
+                              <span className="detail-text">{interview.role || 'N/A'}</span>
+                            </div>
+                            <div className="detail-row">
+                              <i className="bi bi-building text-info"></i>
+                              <span className="detail-text">{interview.company || 'N/A'}</span>
+                            </div>
+                            <div className="detail-row">
+                              <i className="bi bi-clock-history text-secondary"></i>
+                              <span className="detail-text">{interview.experience || 'N/A'}</span>
+                            </div>
+                            <div className="detail-row">
+                              <i className="bi bi-book text-success"></i>
+                              <span className="detail-text">{interview.topic || 'N/A'}</span>
+                            </div>
+                            <div className="detail-row">
+                              <i className="bi bi-speedometer2 text-warning"></i>
+                              <span className="detail-text">{interview.difficulty || 'N/A'}</span>
+                            </div>
+                          </div>
+
+                          {/* Performance Badges */}
+                          <div className="performance-badges">
+                            <span className={`custom-badge ${
+                              confidenceLevel === 'High' ? 'badge-success' :
+                              confidenceLevel === 'Medium' ? 'badge-warning' :
+                              'badge-danger'
+                            }`}>
+                              <i className="bi bi-award-fill me-1"></i>
+                              {confidenceLevel}
                             </span>
-                            <span className="badge bg-warning">
-                              Nervousness: {interview.nervousness}
+                            <span className={`custom-badge ${
+                              nervousnessLevel === 'Low' ? 'badge-success' :
+                              nervousnessLevel === 'Medium' ? 'badge-warning' :
+                              'badge-danger'
+                            }`}>
+                              <i className="bi bi-heart-pulse-fill me-1"></i>
+                              {nervousnessLevel}
                             </span>
                           </div>
-                          <p>
-                            <strong>Weak Areas:</strong>{" "}
-                            {interview.weakAreas.join(", ")}
-                          </p>
-                          <p>
-                            <strong>Strong Areas:</strong>{" "}
-                            {interview.strongAreas.join(", ")}
-                          </p>
-                          <p>
-                            <strong>Focus Areas:</strong>{" "}
-                            {interview.focusAreas.join(", ")}
-                          </p>
+
+                          {/* Areas Summary */}
+                          <div className="areas-summary">
+                            {weakAreasDisplay.length > 0 && (
+                              <div className="area-item weak">
+                                <i className="bi bi-arrow-down-circle-fill"></i>
+                                <span>
+                                  {weakAreasDisplay.slice(0, 1).join(", ")}
+                                  {interview.weakAreas?.length > 1 && ` +${interview.weakAreas.length - 1}`}
+                                </span>
+                              </div>
+                            )}
+
+                            {strongAreasDisplay.length > 0 && (
+                              <div className="area-item strong">
+                                <i className="bi bi-arrow-up-circle-fill"></i>
+                                <span>
+                                  {strongAreasDisplay.slice(0, 1).join(", ")}
+                                  {interview.strongAreas?.length > 1 && ` +${interview.strongAreas.length - 1}`}
+                                </span>
+                              </div>
+                            )}
+                          </div>
                         </div>
 
-                        <div className="card-footer text-center fixed-footer">
+                        <div className="fixed-footer">
                           <button
-                            className="btn btn-outline-primary btn-sm"
+                            className="btn btn-primary btn-sm"
                             onClick={() =>
                               navigate("/interview-summary", {
-                                state: { summary: interview },
+                                state: {
+                                  summary: {
+                                    confidence: interview.confidence,
+                                    nervousness: interview.nervousness,
+                                    weakAreas: interview.weakAreas,
+                                    strongAreas: interview.strongAreas,
+                                    overallSummary: interview.overallSummary,
+                                    technicalScore: interview.technicalScore,
+                                    communicationScore: interview.communicationScore,
+                                    recommendation: interview.recommendation
+                                  },
+                                  interviewData: {
+                                    role: interview.role,
+                                    company: interview.company,
+                                    experience: interview.experience,
+                                    topic: interview.topic,
+                                    difficulty: interview.difficulty,
+                                    resumeText: interview.resumeText,
+                                    messages: interview.messages
+                                  }
+                                },
                               })
                             }
                           >
@@ -237,7 +302,8 @@ const MockInterviewDashboard = () => {
                           </button>
                         </div>
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               ))}

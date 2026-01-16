@@ -13,6 +13,14 @@ import MockSession from "./MockSession";
 // ✅ New import for the Interview Summary page
 import InterviewSummary from "./InterviewSummary";
 
+// ✅ Teacher Dashboard import
+import TeacherDashboard from "./TeacherDashboard";
+
+// ✅ Test-related imports
+import TakeTest from "./TakeTest";
+import TestResultPage from "./TestResultPage";
+import TestResultsView from "./TestResultsView";
+
 function App() {
   return (
     <BrowserRouter>
@@ -35,6 +43,16 @@ function App() {
 
         {/* ✅ New Route for Interview Summary */}
         <Route path="/interview-summary" element={<InterviewSummary />} />
+
+        {/* ✅ Teacher Dashboard Route */}
+        <Route path="/teacher-dashboard" element={<TeacherDashboard />} />
+
+        {/* ✅ Teacher Results View */}
+        <Route path="/test-results-view" element={<TestResultsView />} />
+
+        {/* ✅ Test Routes */}
+        <Route path="/test/:testId" element={<TakeTest />} />
+        <Route path="/test-result" element={<TestResultPage />} />
       </Routes>
     </BrowserRouter>
   );

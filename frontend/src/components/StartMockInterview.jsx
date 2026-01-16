@@ -13,9 +13,12 @@ const StartMockInterview = () => {
     company: "",
     selectedTopic: "",
     difficulty: "",
-    mode: "",
   });
 
+  const [resumeFile, setResumeFile] = useState(null);
+  const [resumeText, setResumeText] = useState("");
+  const [uploadingResume, setUploadingResume] = useState(false);
+  const [uploadError, setUploadError] = useState("");
   const [loading, setLoading] = useState(false);
 
   // ---------------- Handle Input Change ----------------
@@ -23,11 +26,64 @@ const StartMockInterview = () => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
+  // ---------------- Handle PDF Upload ----------------
+  const handleResumeUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Clear previous errors
+    setUploadError("");
+
+    if (file.type !== "application/pdf") {
+      setUploadError("Please upload a PDF file only");
+      setResumeFile(null);
+      setResumeText("");
+      e.target.value = null; // Clear the file input
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadError("File size should be less than 5MB");
+      setResumeFile(null);
+      setResumeText("");
+      e.target.value = null; // Clear the file input
+      return;
+    }
+
+    setResumeFile(file);
+    setUploadingResume(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("resume", file);
+
+      const response = await axios.post(
+        "http://localhost:5000/api/interview/parse-resume",
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        }
+      );
+
+      if (response.data.success) {
+        setResumeText(response.data.resumeText);
+        setUploadError("");
+      }
+    } catch (error) {
+      console.error("Error uploading resume:", error);
+      setUploadError("Failed to parse resume. Please try again with a different file.");
+      setResumeFile(null);
+      setResumeText("");
+    } finally {
+      setUploadingResume(false);
+    }
+  };
+
   // ---------------- Handle Start Interview ----------------
   const handleStart = async () => {
-    const { role, experience, company, selectedTopic, difficulty, mode } = formData;
+    const { role, experience, company, selectedTopic, difficulty } = formData;
 
-    if (!role || !experience || !company || !selectedTopic || !difficulty || !mode) {
+    if (!role || !experience || !company || !selectedTopic || !difficulty) {
       alert("⚠️ Please fill out all fields before starting your mock interview!");
       return;
     }
@@ -35,10 +91,13 @@ const StartMockInterview = () => {
     try {
       setLoading(true);
 
-      // ✅ Send interview details to backend to save in DB
+      // Send interview details with resume text to backend
       const res = await axios.post(
         "http://localhost:5000/api/interview/start",
-        formData,
+        {
+          ...formData,
+          resumeText: resumeText
+        },
         {
           headers: { "Content-Type": "application/json" },
         }
@@ -47,7 +106,13 @@ const StartMockInterview = () => {
       console.log("✅ Response from backend:", res.data);
 
       // Navigate to mock session page with data
-      navigate("/mock-session", { state: { ...formData, interviewData: res.data } });
+      navigate("/mock-session", {
+        state: {
+          ...formData,
+          resumeText: resumeText,
+          interviewData: res.data
+        }
+      });
     } catch (error) {
       console.error("❌ Error starting mock interview:", error);
       alert("Unable to start mock interview. Please ensure backend is running on port 5000.");
@@ -138,23 +203,51 @@ const StartMockInterview = () => {
           </div>
         </div>
 
-        {/* Mode Buttons */}
+        {/* Resume Upload */}
         <div className="mb-4">
-          <label className="form-label fw-semibold">Interview Mode</label>
-          <div className="btn-group-container">
-            {["Voice", "Text"].map((m) => (
-              <button
-                key={m}
-                type="button"
-                className={`btn ${
-                  formData.mode === m ? "btn-success" : "btn-outline-success"
-                }`}
-                onClick={() => setFormData((prev) => ({ ...prev, mode: m }))}
-              >
-                {m}
-              </button>
-            ))}
-          </div>
+          <label className="form-label fw-semibold">
+            Upload Resume (PDF) - Optional but Recommended
+          </label>
+          <input
+            type="file"
+            className="form-control"
+            accept=".pdf"
+            onChange={handleResumeUpload}
+            disabled={uploadingResume}
+          />
+
+          {/* Upload Status Messages */}
+          {uploadingResume && (
+            <div className="alert alert-info mt-2 mb-0 py-2 d-flex align-items-center" role="alert">
+              <div className="spinner-border spinner-border-sm me-2" role="status">
+                <span className="visually-hidden">Loading...</span>
+              </div>
+              <small>Uploading and parsing your resume...</small>
+            </div>
+          )}
+
+          {uploadError && !uploadingResume && (
+            <div className="alert alert-danger mt-2 mb-0 py-2 d-flex align-items-center" role="alert">
+              <i className="bi bi-exclamation-triangle-fill me-2"></i>
+              <small>{uploadError}</small>
+            </div>
+          )}
+
+          {resumeFile && !uploadingResume && !uploadError && (
+            <div className="alert alert-success mt-2 mb-0 py-2 d-flex align-items-center" role="alert">
+              <i className="bi bi-check-circle-fill me-2"></i>
+              <small>
+                <strong>Resume uploaded successfully!</strong> {resumeFile.name}
+              </small>
+            </div>
+          )}
+
+          {!resumeFile && !uploadingResume && !uploadError && (
+            <small className="text-muted d-block mt-2">
+              <i className="bi bi-info-circle me-1"></i>
+              Upload your resume to get personalized interview questions based on your experience and skills.
+            </small>
+          )}
         </div>
 
         {/* Submit Button */}

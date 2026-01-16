@@ -53,6 +53,17 @@
   padding-left: 20px;
 }
 
+.overall-summary-text {
+  font-size: 1.05rem;
+  line-height: 1.8;
+  color: #34495e;
+  background: #fff;
+  padding: 15px;
+  border-left: 4px solid #4a90e2;
+  border-radius: 8px;
+  font-weight: 400;
+}
+
 .video-grid {
   display: flex;
   flex-wrap: wrap;
