@@ -1,7 +1,8 @@
-import 'bootstrap/dist/css/bootstrap.min.css';
 import { useState } from 'react';
 import { Link, useNavigate } from "react-router-dom";
 import axios from 'axios';
+import 'bootstrap-icons/font/bootstrap-icons.css';
+import './Register.css';
 
 const Register = () => {
     const [rollNo, setRollNo] = useState("");
@@ -60,58 +61,70 @@ const Register = () => {
     };
 
     return (
-        <div 
-            className="d-flex justify-content-center align-items-center text-center vh-100" 
-            style={{
-                background: "linear-gradient(135deg, #00d5ff, #0095ff, rgba(93,0,255,.555))",
-                fontFamily: "'Poppins', sans-serif"
-            }}
-        >
-            <div 
-                className="p-5 rounded shadow-lg" 
-                style={{ 
-                    width: '400px', 
-                    background: "rgba(255,255,255,0.95)", 
-                    transition: "transform 0.3s, box-shadow 0.3s" 
-                }}
-            >
-                <h2 className='mb-4 text-primary fw-bold'>Register</h2>
+        <div className="register-wrapper">
+            <div className="register-card">
+                <div className="register-header">
+                    <div className="register-logo">
+                        <i className="bi bi-person-plus-fill"></i>
+                    </div>
+                    <h1 className="register-title">Create Account</h1>
+                    <p className="register-subtitle">Join AI-Student to start your learning journey</p>
+                </div>
 
-                {error && <div className="alert alert-danger">{error}</div>}
-                {success && <div className="alert alert-success">{success}</div>}
+                {error && (
+                    <div className="register-alert register-alert-error">
+                        <i className="bi bi-exclamation-circle-fill"></i>
+                        {error}
+                    </div>
+                )}
+                {success && (
+                    <div className="register-alert register-alert-success">
+                        <i className="bi bi-check-circle-fill"></i>
+                        {success}
+                    </div>
+                )}
 
-                <form onSubmit={handleSubmit}>
-                    <div className="mb-3 text-start">
-                        <label className="form-label fw-semibold">Roll No</label>
+                <form onSubmit={handleSubmit} className="register-form">
+                    <div className="form-group">
+                        <label className="form-label">
+                            <i className="bi bi-card-text"></i>
+                            Roll Number
+                        </label>
                         <input
                             type="text"
-                            placeholder="Enter Roll No"
-                            className="form-control shadow-sm"
+                            placeholder="Enter your roll number"
+                            className="form-control"
                             value={rollNo}
                             onChange={(e) => setRollNo(e.target.value)}
                             required
                         />
                     </div>
-                    <div className="mb-3 text-start">
-                        <label className="form-label fw-semibold">Name</label>
+                    <div className="form-group">
+                        <label className="form-label">
+                            <i className="bi bi-person-fill"></i>
+                            Full Name
+                        </label>
                         <input
                             type="text"
-                            placeholder="Enter Name"
-                            className="form-control shadow-sm"
+                            placeholder="Enter your full name"
+                            className="form-control"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
                             required
                         />
                     </div>
-                    <div className="mb-3 text-start">
-                        <label className="form-label fw-semibold">Branch</label>
+                    <div className="form-group">
+                        <label className="form-label">
+                            <i className="bi bi-building"></i>
+                            Branch
+                        </label>
                         <select
-                            className="form-select shadow-sm"
+                            className="form-select"
                             value={branch}
                             onChange={(e) => setBranch(e.target.value)}
                             required
                         >
-                            <option value="">-- Select Branch --</option>
+                            <option value="">Select your branch</option>
                             {branches.map((branchName) => (
                                 <option key={branchName} value={branchName}>
                                     {branchName}
@@ -119,57 +132,54 @@ const Register = () => {
                             ))}
                         </select>
                     </div>
-                    <div className="mb-3 text-start">
-                        <label className="form-label fw-semibold">Password</label>
+                    <div className="form-group">
+                        <label className="form-label">
+                            <i className="bi bi-lock-fill"></i>
+                            Password
+                        </label>
                         <input
                             type="password"
-                            placeholder="Enter Password"
-                            className="form-control shadow-sm"
+                            placeholder="Create a password"
+                            className="form-control"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             required
                         />
                     </div>
-                    <div className="mb-3 text-start">
-                        <label className="form-label fw-semibold">Confirm Password</label>
+                    <div className="form-group">
+                        <label className="form-label">
+                            <i className="bi bi-shield-lock-fill"></i>
+                            Confirm Password
+                        </label>
                         <input
                             type="password"
-                            placeholder="Confirm Password"
-                            className="form-control shadow-sm"
+                            placeholder="Confirm your password"
+                            className="form-control"
                             value={confirmPassword}
                             onChange={(e) => setConfirmPassword(e.target.value)}
                             required
                         />
                     </div>
 
-                    <button 
-                        type="submit" 
-                        className="btn btn-primary w-100 fw-bold"
+                    <button
+                        type="submit"
+                        className="register-submit-btn"
                         disabled={loading}
-                        style={{ transition: "all 0.3s" }}
-                        onMouseOver={e => {
-                            e.target.style.transform = "scale(1.05)";
-                            e.target.style.boxShadow = "0 5px 15px rgba(0,0,0,0.3)";
-                        }}
-                        onMouseOut={e => {
-                            e.target.style.transform = "scale(1)";
-                            e.target.style.boxShadow = "none";
-                        }}
                     >
-                        {loading ? "Registering..." : "Register"}
+                        {loading && <span className="spinner"></span>}
+                        {loading ? "Creating Account..." : "Create Account"}
                     </button>
                 </form>
 
-                <p className='my-3'>Already have an account?</p>
-                <Link 
-                    to='/login' 
-                    className="btn btn-outline-secondary w-100 fw-semibold"
-                    style={{ transition: "all 0.3s" }}
-                    onMouseOver={e => e.target.style.transform = "scale(1.05)"}
-                    onMouseOut={e => e.target.style.transform = "scale(1)"}
-                >
-                    Login
-                </Link>
+                <div className="register-divider">
+                    <span>Already have an account?</span>
+                </div>
+
+                <div className="register-footer">
+                    <Link to='/login' className="register-login-btn">
+                        Sign In
+                    </Link>
+                </div>
             </div>
         </div>
     );

@@ -1,7 +1,8 @@
-import 'bootstrap/dist/css/bootstrap.min.css';
 import { useState } from 'react';
 import { Link, useNavigate } from "react-router-dom";
 import axios from 'axios';
+import 'bootstrap-icons/font/bootstrap-icons.css';
+import './Login.css';
 
 const Login = () => {
     const [rollNo, setRollNo] = useState("");
@@ -74,44 +75,53 @@ const Login = () => {
     };
 
     return (
-        <div
-            className="d-flex justify-content-center align-items-center text-center vh-100"
-            style={{
-                background: "linear-gradient(135deg, #00d5ff, #0095ff, rgba(93,0,255,.555))",
-                fontFamily: "'Poppins', sans-serif"
-            }}
-        >
-            <div
-                className="p-5 rounded shadow-lg"
-                style={{
-                    width: "400px",
-                    background: "rgba(255,255,255,0.95)",
-                    transition: "transform 0.3s, box-shadow 0.3s"
-                }}
-            >
-                <h2 className="mb-4 text-primary fw-bold">Login</h2>
+        <div className="login-wrapper">
+            <div className="login-card">
+                <div className="login-header">
+                    <div className="login-logo">
+                        <i className="bi bi-mortarboard-fill"></i>
+                    </div>
+                    <h1 className="login-title">Welcome Back</h1>
+                    <p className="login-subtitle">Sign in to continue your learning journey</p>
+                </div>
 
-                {error && <div className="alert alert-danger">{error}</div>}
-                {success && <div className="alert alert-success">{success}</div>}
+                {error && (
+                    <div className="login-alert login-alert-error">
+                        <i className="bi bi-exclamation-circle-fill"></i>
+                        {error}
+                    </div>
+                )}
+                {success && (
+                    <div className="login-alert login-alert-success">
+                        <i className="bi bi-check-circle-fill"></i>
+                        {success}
+                    </div>
+                )}
 
-                <form onSubmit={handleSubmit}>
-                    <div className="mb-3 text-start">
-                        <label className="form-label fw-semibold">Roll No</label>
+                <form onSubmit={handleSubmit} className="login-form">
+                    <div className="form-group">
+                        <label className="form-label">
+                            <i className="bi bi-person-fill"></i>
+                            Roll Number / Email
+                        </label>
                         <input
                             type="text"
-                            placeholder="Enter Roll No"
-                            className="form-control shadow-sm"
+                            placeholder="Enter your roll number or email"
+                            className="form-control"
                             value={rollNo}
                             onChange={(e) => setRollNo(e.target.value)}
                             required
                         />
                     </div>
-                    <div className="mb-3 text-start">
-                        <label className="form-label fw-semibold">Password</label>
+                    <div className="form-group">
+                        <label className="form-label">
+                            <i className="bi bi-lock-fill"></i>
+                            Password
+                        </label>
                         <input
                             type="password"
-                            placeholder="Enter Password"
-                            className="form-control shadow-sm"
+                            placeholder="Enter your password"
+                            className="form-control"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             required
@@ -119,32 +129,23 @@ const Login = () => {
                     </div>
                     <button
                         type="submit"
-                        className="btn btn-primary w-100 fw-bold"
+                        className="login-submit-btn"
                         disabled={loading}
-                        style={{ transition: "all 0.3s" }}
-                        onMouseOver={(e) => {
-                            e.target.style.transform = "scale(1.05)";
-                            e.target.style.boxShadow = "0 5px 15px rgba(0,0,0,0.3)";
-                        }}
-                        onMouseOut={(e) => {
-                            e.target.style.transform = "scale(1)";
-                            e.target.style.boxShadow = "none";
-                        }}
                     >
-                        {loading ? "Logging in..." : "Login"}
+                        {loading && <span className="spinner"></span>}
+                        {loading ? "Signing In..." : "Sign In"}
                     </button>
                 </form>
 
-                <p className="my-3">Don't have an account?</p>
-                <Link
-                    to="/register"
-                    className="btn btn-outline-secondary w-100 fw-semibold"
-                    style={{ transition: "all 0.3s" }}
-                    onMouseOver={(e) => (e.target.style.transform = "scale(1.05)")}
-                    onMouseOut={(e) => (e.target.style.transform = "scale(1)")}
-                >
-                    Register
-                </Link>
+                <div className="login-divider">
+                    <span>New to AI-Student?</span>
+                </div>
+
+                <div className="login-footer">
+                    <Link to="/register" className="login-register-btn">
+                        Create Account
+                    </Link>
+                </div>
             </div>
         </div>
     );
