@@ -28,6 +28,8 @@ ChartJS.register(
 const StartTestDashboard = () => {
   const [studentName, setStudentName] = useState("");
   const [rollNo, setRollNo] = useState("");
+  const [studentBranch, setStudentBranch] = useState("");
+  const [showDropdown, setShowDropdown] = useState(false);
   const [publishedTests, setPublishedTests] = useState([]);
   const [submittedResults, setSubmittedResults] = useState([]);
   const [pendingTests, setPendingTests] = useState([]);
@@ -37,12 +39,14 @@ const StartTestDashboard = () => {
   useEffect(() => {
     const name = localStorage.getItem("studentName");
     const roll = localStorage.getItem("rollNo");
+    const branch = localStorage.getItem("studentBranch");
 
     if (!name || !roll) {
       navigate("/login");
     } else {
       setStudentName(name);
       setRollNo(roll);
+      setStudentBranch(branch || "N/A");
       fetchData(roll);
     }
   }, [navigate]);
@@ -51,8 +55,11 @@ const StartTestDashboard = () => {
     try {
       setLoading(true);
 
-      // Fetch published tests
-      const testsResponse = await axios.get("http://localhost:5000/api/test/published");
+      // Get student's branch from localStorage
+      const studentBranch = localStorage.getItem("studentBranch");
+
+      // Fetch published tests for this branch
+      const testsResponse = await axios.get(`http://localhost:5000/api/test/published?branch=${studentBranch}`);
 
       // Fetch student's submitted results
       const resultsResponse = await axios.get(`http://localhost:5000/api/test-result/student/${roll}`);
@@ -193,16 +200,64 @@ const StartTestDashboard = () => {
         <div className="ms-auto d-flex align-items-center gap-3">
           <button
             onClick={() => navigate("/home")}
-            className="btn btn-light btn-sm fw-semibold"
+            className="btn btn-light btn-sm fw-semibold home-btn"
           >
-            🏠 Home
+            <i className="bi bi-house-door-fill"></i>
           </button>
-          <span className="fw-semibold text-white">
-            Hi, {studentName || "Student"}
-          </span>
-          <button onClick={handleLogout} className="btn btn-outline-light btn-sm">
-            Logout
-          </button>
+          <div className="profile-dropdown-container">
+            <button
+              className="profile-icon-btn"
+              onClick={() => setShowDropdown(!showDropdown)}
+            >
+              <i className="bi bi-person-circle"></i>
+            </button>
+
+            {showDropdown && (
+              <>
+                <div className="dropdown-backdrop" onClick={() => setShowDropdown(false)}></div>
+                <div className="profile-dropdown">
+                  <div className="dropdown-header">
+                    <div className="dropdown-avatar">
+                      {studentName.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="dropdown-info">
+                      <div className="dropdown-name">{studentName}</div>
+                      <div className="dropdown-detail">
+                        <i className="bi bi-building me-1"></i>
+                        {studentBranch}
+                      </div>
+                      <div className="dropdown-detail">
+                        <i className="bi bi-person-badge me-1"></i>
+                        {rollNo}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="dropdown-actions">
+                    <button
+                      className="dropdown-btn view-profile-btn"
+                      onClick={() => {
+                        setShowDropdown(false);
+                        navigate(`/student-profile/${rollNo}`);
+                      }}
+                    >
+                      <i className="bi bi-eye me-2"></i>
+                      View Profile
+                    </button>
+                    <button
+                      className="dropdown-btn logout-btn"
+                      onClick={() => {
+                        setShowDropdown(false);
+                        handleLogout();
+                      }}
+                    >
+                      <i className="bi bi-box-arrow-right me-2"></i>
+                      Logout
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </nav>
 

@@ -8,9 +8,18 @@ const Register = () => {
     const [name, setName] = useState("");
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
+    const [branch, setBranch] = useState("");
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
     const [loading, setLoading] = useState(false);
+
+    const branches = [
+        "Computer Engineering",
+        "IT",
+        "EXTC",
+        "Electrical",
+        "Mechanical"
+    ];
 
     const navigate = useNavigate();
 
@@ -31,7 +40,8 @@ const Register = () => {
                 rollNo,
                 name,
                 password,
-                confirmPassword
+                confirmPassword,
+                branch
             });
 
             if (response.data.message === "Registration successful") {
@@ -92,6 +102,22 @@ const Register = () => {
                             onChange={(e) => setName(e.target.value)}
                             required
                         />
+                    </div>
+                    <div className="mb-3 text-start">
+                        <label className="form-label fw-semibold">Branch</label>
+                        <select
+                            className="form-select shadow-sm"
+                            value={branch}
+                            onChange={(e) => setBranch(e.target.value)}
+                            required
+                        >
+                            <option value="">-- Select Branch --</option>
+                            {branches.map((branchName) => (
+                                <option key={branchName} value={branchName}>
+                                    {branchName}
+                                </option>
+                            ))}
+                        </select>
                     </div>
                     <div className="mb-3 text-start">
                         <label className="form-label fw-semibold">Password</label>

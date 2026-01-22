@@ -20,6 +20,9 @@ import TeacherDashboard from "./TeacherDashboard";
 import TakeTest from "./TakeTest";
 import TestResultPage from "./TestResultPage";
 import TestResultsView from "./TestResultsView";
+import TestSpecificResults from "./TestSpecificResults";
+import StudentProfile from "./StudentProfile";
+import StudentsList from "./StudentsList";
 
 function App() {
   return (
@@ -49,6 +52,9 @@ function App() {
 
         {/* ✅ Teacher Results View */}
         <Route path="/test-results-view" element={<TestResultsView />} />
+        <Route path="/test-results/:testId" element={<TestSpecificResults />} />
+        <Route path="/students-list" element={<StudentsList />} />
+        <Route path="/student-profile/:rollNo" element={<StudentProfile />} />
 
         {/* ✅ Test Routes */}
         <Route path="/test/:testId" element={<TakeTest />} />

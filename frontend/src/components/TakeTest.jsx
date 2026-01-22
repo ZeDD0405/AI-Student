@@ -4,6 +4,8 @@ import axios from "axios";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import "./TakeTest.css";
+import Toast from "./Toast";
+import ConfirmModal from "./ConfirmModal";
 
 const TakeTest = () => {
   const { testId } = useParams();
@@ -18,6 +20,9 @@ const TakeTest = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [startTime] = useState(Date.now());
+  const [toast, setToast] = useState(null);
+  const [confirmModal, setConfirmModal] = useState(null);
+  const [isTestLocked, setIsTestLocked] = useState(false);
 
   const timerRef = useRef(null);
   const documentVisibilityRef = useRef(true);
@@ -30,8 +35,8 @@ const TakeTest = () => {
         const rollNo = localStorage.getItem("rollNo");
 
         if (!studentName || !rollNo) {
-          alert("Please login to take the test");
-          navigate("/login");
+          setToast({ message: "Please login to take the test", type: "error" });
+          setTimeout(() => navigate("/login"), 1500);
           return;
         }
 
@@ -54,8 +59,8 @@ const TakeTest = () => {
         }
       } catch (error) {
         console.error("Error fetching test:", error);
-        alert("Failed to load test");
-        navigate("/start-test");
+        setToast({ message: "Failed to load test", type: "error" });
+        setTimeout(() => navigate("/start-test"), 1500);
       }
     };
 
@@ -87,22 +92,30 @@ const TakeTest = () => {
   const requestFullscreen = () => {
     const elem = document.documentElement;
     if (elem.requestFullscreen) {
-      elem.requestFullscreen().catch(err => {
+      elem.requestFullscreen().then(() => {
+        setIsTestLocked(false);
+        setIsFullscreen(true);
+      }).catch(err => {
         console.log("Fullscreen request failed:", err);
       });
     } else if (elem.webkitRequestFullscreen) {
       elem.webkitRequestFullscreen();
+      setIsTestLocked(false);
+      setIsFullscreen(true);
     } else if (elem.msRequestFullscreen) {
       elem.msRequestFullscreen();
+      setIsTestLocked(false);
+      setIsFullscreen(true);
     }
   };
 
   useEffect(() => {
     const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
+      const inFullscreen = !!document.fullscreenElement;
+      setIsFullscreen(inFullscreen);
 
-      // If user exits fullscreen, request it again
-      if (!document.fullscreenElement && !submitting) {
+      // If user exits fullscreen and test is not locked, request it again
+      if (!inFullscreen && !submitting && !isTestLocked) {
         setTimeout(() => {
           requestFullscreen();
         }, 1000);
@@ -128,7 +141,15 @@ const TakeTest = () => {
       if (document.hidden && !submitting) {
         documentVisibilityRef.current = false;
         setTabSwitchCount(prev => prev + 1);
-        alert("⚠️ Warning: Tab switching is not allowed during the test! This incident has been recorded.");
+        setIsTestLocked(true);
+        setIsFullscreen(false);
+
+        // Exit fullscreen
+        if (document.exitFullscreen) {
+          document.exitFullscreen().catch(err => console.log("Error exiting fullscreen:", err));
+        }
+
+        setToast({ message: "⚠️ Warning: Tab switching is not allowed! The test is now locked. Click 'Go Fullscreen' to continue.", type: "warning" });
       } else {
         documentVisibilityRef.current = true;
       }
@@ -195,16 +216,36 @@ const TakeTest = () => {
     if (!autoSubmit) {
       const unanswered = answers.filter(a => a.selectedAnswer === -1).length;
       if (unanswered > 0) {
-        if (!window.confirm(`You have ${unanswered} unanswered question(s). Do you still want to submit?`)) {
-          return;
-        }
+        setConfirmModal({
+          message: `You have ${unanswered} unanswered question(s). Do you still want to submit?`,
+          onConfirm: () => {
+            setConfirmModal(null);
+            submitTestNow();
+          },
+          onCancel: () => setConfirmModal(null),
+          type: "warning",
+          confirmText: "Submit Anyway"
+        });
+        return;
       } else {
-        if (!window.confirm("Are you sure you want to submit your test?")) {
-          return;
-        }
+        setConfirmModal({
+          message: "Are you sure you want to submit your test?",
+          onConfirm: () => {
+            setConfirmModal(null);
+            submitTestNow();
+          },
+          onCancel: () => setConfirmModal(null),
+          type: "info",
+          confirmText: "Submit Test"
+        });
+        return;
       }
     }
 
+    submitTestNow();
+  };
+
+  const submitTestNow = async () => {
     setSubmitting(true);
 
     // Clear timer
@@ -243,7 +284,7 @@ const TakeTest = () => {
       }
     } catch (error) {
       console.error("Error submitting test:", error);
-      alert("Failed to submit test. Please try again.");
+      setToast({ message: "Failed to submit test. Please try again.", type: "error" });
       setSubmitting(false);
     }
   };
@@ -280,6 +321,28 @@ const TakeTest = () => {
 
   return (
     <div className="take-test-container">
+      {/* Lock Overlay */}
+      {isTestLocked && (
+        <div className="test-lock-overlay">
+          <div className="lock-content">
+            <div className="lock-icon">
+              <i className="bi bi-lock-fill"></i>
+            </div>
+            <h3 className="lock-title">Test Locked</h3>
+            <p className="lock-message">
+              You switched tabs during the test. To continue, you must enter fullscreen mode.
+            </p>
+            <button
+              className="btn btn-primary btn-lg go-fullscreen-btn"
+              onClick={requestFullscreen}
+            >
+              <i className="bi bi-arrows-fullscreen me-2"></i>
+              Go Fullscreen
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="test-header-bar">
         <div className="container-fluid">
@@ -388,14 +451,15 @@ const TakeTest = () => {
                   Previous
                 </button>
 
-                <button
-                  className="btn btn-primary"
-                  onClick={goToNextQuestion}
-                  disabled={currentQuestionIndex === test.questions.length - 1}
-                >
-                  Next
-                  <i className="bi bi-arrow-right ms-2"></i>
-                </button>
+                {currentQuestionIndex < test.questions.length - 1 && (
+                  <button
+                    className="btn btn-primary"
+                    onClick={goToNextQuestion}
+                  >
+                    Next
+                    <i className="bi bi-arrow-right ms-2"></i>
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -438,6 +502,27 @@ const TakeTest = () => {
           </div>
         </div>
       </div>
+
+      {/* Toast Notification */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
+
+      {/* Confirm Modal */}
+      {confirmModal && (
+        <ConfirmModal
+          message={confirmModal.message}
+          onConfirm={confirmModal.onConfirm}
+          onCancel={confirmModal.onCancel}
+          confirmText={confirmModal.confirmText}
+          cancelText={confirmModal.cancelText || "Cancel"}
+          type={confirmModal.type}
+        />
+      )}
     </div>
   );
 };

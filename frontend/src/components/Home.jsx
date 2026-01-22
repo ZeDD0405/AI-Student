@@ -5,12 +5,20 @@ import "./Home.css";
 
 const Home = () => {
   const [studentName, setStudentName] = useState("");
+  const [studentBranch, setStudentBranch] = useState("");
+  const [rollNo, setRollNo] = useState("");
+  const [showDropdown, setShowDropdown] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
     const storedName = localStorage.getItem("studentName");
-    if (storedName) {
+    const storedBranch = localStorage.getItem("studentBranch");
+    const storedRollNo = localStorage.getItem("rollNo");
+
+    if (storedName && storedRollNo) {
       setStudentName(storedName);
+      setStudentBranch(storedBranch || "N/A");
+      setRollNo(storedRollNo);
     } else {
       navigate("/login");
     }
@@ -27,13 +35,59 @@ const Home = () => {
       {/* Navbar */}
       <nav className="navbar navbar-expand-lg navbar-dark navbar-custom px-4">
         <h3 className="navbar-brand fw-bold mb-0">Student Dashboard</h3>
-        <div className="ms-auto d-flex align-items-center">
-          <span className="me-3 fw-semibold welcome-text">
-            Welcome, {studentName || "Student"}
-          </span>
-          <button onClick={handleLogout} className="btn btn-outline-light btn-sm">
-            Logout
+        <div className="ms-auto profile-dropdown-container">
+          <button
+            className="profile-icon-btn"
+            onClick={() => setShowDropdown(!showDropdown)}
+          >
+            <i className="bi bi-person-circle"></i>
           </button>
+
+          {showDropdown && (
+            <>
+              <div className="dropdown-backdrop" onClick={() => setShowDropdown(false)}></div>
+              <div className="profile-dropdown">
+                <div className="dropdown-header">
+                  <div className="dropdown-avatar">
+                    {studentName.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="dropdown-info">
+                    <div className="dropdown-name">{studentName}</div>
+                    <div className="dropdown-detail">
+                      <i className="bi bi-building me-1"></i>
+                      {studentBranch}
+                    </div>
+                    <div className="dropdown-detail">
+                      <i className="bi bi-person-badge me-1"></i>
+                      {rollNo}
+                    </div>
+                  </div>
+                </div>
+                <div className="dropdown-actions">
+                  <button
+                    className="dropdown-btn view-profile-btn"
+                    onClick={() => {
+                      setShowDropdown(false);
+                      navigate(`/student-profile/${rollNo}`);
+                    }}
+                  >
+                    <i className="bi bi-eye me-2"></i>
+                    View Profile
+                  </button>
+                  <button
+                    className="dropdown-btn logout-btn"
+                    onClick={() => {
+                      setShowDropdown(false);
+                      handleLogout();
+                    }}
+                  >
+                    <i className="bi bi-box-arrow-right me-2"></i>
+                    Logout
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </nav>
 

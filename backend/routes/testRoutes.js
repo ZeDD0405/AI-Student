@@ -5,13 +5,27 @@ const Test = require("../models/Test");
 // Create a new test
 router.post("/create", async (req, res) => {
   try {
-    const { title, description, subject, totalQuestions, timeLimit, questions } = req.body;
+    const { title, description, subject, totalQuestions, timeLimit, branch, questions } = req.body;
 
     // Validation
-    if (!title || !description || !subject || !totalQuestions || !timeLimit || !questions) {
+    if (!title || !subject || !totalQuestions || !timeLimit || !branch || !questions) {
       return res.status(400).json({
         success: false,
-        error: "All fields are required"
+        error: "All required fields must be filled"
+      });
+    }
+
+    if (totalQuestions < 1) {
+      return res.status(400).json({
+        success: false,
+        error: "Total questions must be at least 1"
+      });
+    }
+
+    if (timeLimit < 1) {
+      return res.status(400).json({
+        success: false,
+        error: "Time limit must be at least 1 minute"
       });
     }
 
@@ -24,10 +38,11 @@ router.post("/create", async (req, res) => {
 
     const newTest = new Test({
       title,
-      description,
+      description: description || "",
       subject,
       totalQuestions,
       timeLimit,
+      branch,
       questions,
       isPublished: false
     });
@@ -41,9 +56,11 @@ router.post("/create", async (req, res) => {
     });
   } catch (error) {
     console.error("Error creating test:", error);
+    console.error("Error message:", error.message);
+    console.error("Error stack:", error.stack);
     res.status(500).json({
       success: false,
-      error: "Failed to create test"
+      error: error.message || "Failed to create test"
     });
   }
 });
@@ -101,7 +118,15 @@ router.get("/all", async (req, res) => {
 // Get published tests (for students)
 router.get("/published", async (req, res) => {
   try {
-    const tests = await Test.find({ isPublished: true })
+    const { branch } = req.query;
+
+    // Filter criteria
+    const filter = { isPublished: true };
+    if (branch) {
+      filter.branch = branch;
+    }
+
+    const tests = await Test.find(filter)
       .select("-questions.correctAnswer") // Hide correct answers from students
       .sort({ createdAt: -1 });
 

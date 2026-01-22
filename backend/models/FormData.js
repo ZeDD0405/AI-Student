@@ -5,6 +5,11 @@ const FormDataSchema = new mongoose.Schema({
   rollNo: { type: String, required: true, unique: true, trim: true },
   name: { type: String, required: true, trim: true },
   password: { type: String, required: true },
+  branch: {
+    type: String,
+    required: true,
+    enum: ["Computer Engineering", "IT", "EXTC", "Electrical", "Mechanical"]
+  },
 }, { timestamps: true });
 
 // Hash password before saving

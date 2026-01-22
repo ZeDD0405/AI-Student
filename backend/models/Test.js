@@ -7,12 +7,12 @@ const TestSchema = new mongoose.Schema({
   },
   description: {
     type: String,
-    required: true
+    required: false,
+    default: ""
   },
   subject: {
     type: String,
-    required: true,
-    enum: ["JavaScript Fundamentals", "React Basics", "Data Structures", "Algorithms", "Behavioral Test"]
+    required: true
   },
   totalQuestions: {
     type: Number,
@@ -23,6 +23,11 @@ const TestSchema = new mongoose.Schema({
     required: true,
     min: 1,
     comment: "Time limit in minutes"
+  },
+  branch: {
+    type: String,
+    required: true,
+    enum: ["Computer Engineering", "IT", "EXTC", "Electrical", "Mechanical"]
   },
   questions: [{
     question: {

@@ -53,6 +53,7 @@ const Login = () => {
                 if (response.data && response.data.message === "Login successful") {
                     localStorage.setItem("rollNo", response.data.user.rollNo);
                     localStorage.setItem("studentName", response.data.user.name);
+                    localStorage.setItem("studentBranch", response.data.user.branch);
 
                     setSuccess("Login successful! Redirecting...");
                     setTimeout(() => navigate("/home"), 1500);

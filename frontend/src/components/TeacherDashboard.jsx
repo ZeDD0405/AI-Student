@@ -4,6 +4,8 @@ import axios from "axios";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import "./TeacherDashboard.css";
+import Toast from "./Toast";
+import ConfirmModal from "./ConfirmModal";
 
 const TeacherDashboard = () => {
   const [teacherName, setTeacherName] = useState("");
@@ -11,13 +13,18 @@ const TeacherDashboard = () => {
   const [showCreateTestModal, setShowCreateTestModal] = useState(false);
   const [creatingTest, setCreatingTest] = useState(false);
 
+  // Toast and Modal states
+  const [toast, setToast] = useState(null);
+  const [confirmModal, setConfirmModal] = useState(null);
+
   // Test creation state
   const [testDetails, setTestDetails] = useState({
     title: "",
     description: "",
     subject: "",
-    totalQuestions: 0,
-    timeLimit: 30
+    totalQuestions: 1,
+    timeLimit: 30,
+    branch: ""
   });
 
   const [currentTest, setCurrentTest] = useState(null);
@@ -28,8 +35,7 @@ const TeacherDashboard = () => {
   const [questionForm, setQuestionForm] = useState({
     question: "",
     options: ["", "", "", ""],
-    correctAnswer: 0,
-    difficulty: "Medium"
+    correctAnswer: 0
   });
 
   const navigate = useNavigate();
@@ -40,6 +46,14 @@ const TeacherDashboard = () => {
     "Data Structures",
     "Algorithms",
     "Behavioral Test"
+  ];
+
+  const branches = [
+    "Computer Engineering",
+    "IT",
+    "EXTC",
+    "Electrical",
+    "Mechanical"
   ];
 
   useEffect(() => {
@@ -72,8 +86,8 @@ const TeacherDashboard = () => {
   const handleTestDetailsSubmit = (e) => {
     e.preventDefault();
 
-    if (!testDetails.title || !testDetails.subject || testDetails.totalQuestions < 1 || testDetails.timeLimit < 5) {
-      alert("Please fill in all fields. Total questions must be at least 1 and time limit must be at least 5 minutes.");
+    if (!testDetails.title || !testDetails.subject || !testDetails.branch || testDetails.totalQuestions < 1 || testDetails.timeLimit < 1) {
+      setToast({ message: "Please fill in all required fields. Total questions and time limit must be at least 1.", type: "error" });
       return;
     }
 
@@ -94,12 +108,12 @@ const TeacherDashboard = () => {
     e.preventDefault();
 
     if (!questionForm.question.trim()) {
-      alert("Please enter the question");
+      setToast({ message: "Please enter the question", type: "warning" });
       return;
     }
 
     if (questionForm.options.some(opt => !opt.trim())) {
-      alert("Please fill in all 4 options");
+      setToast({ message: "Please fill in all 4 options", type: "warning" });
       return;
     }
 
@@ -107,8 +121,7 @@ const TeacherDashboard = () => {
     const newQuestion = {
       question: questionForm.question,
       options: questionForm.options,
-      correctAnswer: questionForm.correctAnswer,
-      difficulty: questionForm.difficulty
+      correctAnswer: questionForm.correctAnswer
     };
 
     const updatedList = [...questionsList, newQuestion];
@@ -118,8 +131,7 @@ const TeacherDashboard = () => {
     setQuestionForm({
       question: "",
       options: ["", "", "", ""],
-      correctAnswer: 0,
-      difficulty: "Medium"
+      correctAnswer: 0
     });
 
     // Move to next question or finish
@@ -138,10 +150,13 @@ const TeacherDashboard = () => {
     if (!currentTest) return;
 
     try {
-      const response = await axios.post("http://localhost:5000/api/test/create", {
+      const testData = {
         ...currentTest,
         questions: questionsList
-      });
+      };
+      console.log("Publishing test with data:", testData);
+
+      const response = await axios.post("http://localhost:5000/api/test/create", testData);
 
       if (response.data.success) {
         const testId = response.data.test._id;
@@ -150,7 +165,7 @@ const TeacherDashboard = () => {
         const publishResponse = await axios.put(`http://localhost:5000/api/test/publish/${testId}`);
 
         if (publishResponse.data.success) {
-          alert("Test published successfully to students!");
+          setToast({ message: "Test published successfully to students!", type: "success" });
 
           // Reset everything
           setCreatingTest(false);
@@ -161,8 +176,9 @@ const TeacherDashboard = () => {
             title: "",
             description: "",
             subject: "",
-            totalQuestions: 0,
-            timeLimit: 30
+            totalQuestions: 1,
+            timeLimit: 30,
+            branch: ""
           });
 
           // Refresh tests list
@@ -171,47 +187,61 @@ const TeacherDashboard = () => {
       }
     } catch (error) {
       console.error("Error publishing test:", error);
-      alert("Failed to publish test. Please try again.");
+      console.error("Error response:", error.response?.data);
+      const errorMessage = error.response?.data?.error || "Failed to publish test. Please try again.";
+      setToast({ message: errorMessage, type: "error" });
     }
   };
 
-  const handleDeleteTest = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this test?")) {
-      return;
-    }
-
-    try {
-      const response = await axios.delete(`http://localhost:5000/api/test/${id}`);
-      if (response.data.success) {
-        alert("Test deleted successfully!");
-        fetchTests();
-      }
-    } catch (error) {
-      console.error("Error deleting test:", error);
-      alert("Failed to delete test");
-    }
+  const handleDeleteTest = (id) => {
+    setConfirmModal({
+      message: "Are you sure you want to delete this test? This action cannot be undone.",
+      onConfirm: async () => {
+        try {
+          const response = await axios.delete(`http://localhost:5000/api/test/${id}`);
+          if (response.data.success) {
+            setToast({ message: "Test deleted successfully!", type: "success" });
+            fetchTests();
+          }
+        } catch (error) {
+          console.error("Error deleting test:", error);
+          setToast({ message: "Failed to delete test", type: "error" });
+        }
+        setConfirmModal(null);
+      },
+      onCancel: () => setConfirmModal(null),
+      type: "danger",
+      confirmText: "Delete"
+    });
   };
 
   const cancelTestCreation = () => {
-    if (window.confirm("Are you sure you want to cancel? All progress will be lost.")) {
-      setCreatingTest(false);
-      setCurrentTest(null);
-      setQuestionsList([]);
-      setCurrentQuestionIndex(0);
-      setTestDetails({
-        title: "",
-        description: "",
-        subject: "",
-        totalQuestions: 0,
-        timeLimit: 30
-      });
-      setQuestionForm({
-        question: "",
-        options: ["", "", "", ""],
-        correctAnswer: 0,
-        difficulty: "Medium"
-      });
-    }
+    setConfirmModal({
+      message: "Are you sure you want to cancel? All progress will be lost.",
+      onConfirm: () => {
+        setCreatingTest(false);
+        setCurrentTest(null);
+        setQuestionsList([]);
+        setCurrentQuestionIndex(0);
+        setTestDetails({
+          title: "",
+          description: "",
+          subject: "",
+          totalQuestions: 1,
+          timeLimit: 30,
+          branch: ""
+        });
+        setQuestionForm({
+          question: "",
+          options: ["", "", "", ""],
+          correctAnswer: 0
+        });
+        setConfirmModal(null);
+      },
+      onCancel: () => setConfirmModal(null),
+      type: "warning",
+      confirmText: "Yes, Cancel"
+    });
   };
 
   // Check if all questions are added
@@ -226,6 +256,12 @@ const TeacherDashboard = () => {
           Teacher Dashboard
         </h3>
         <div className="ms-auto d-flex align-items-center gap-3">
+          <button
+            onClick={() => navigate("/students-list")}
+            className="btn btn-light btn-sm fw-semibold"
+          >
+            <i className="bi bi-people me-1"></i> View Students
+          </button>
           <span className="fw-semibold text-white">
             Welcome, {teacherName || "Teacher"}
           </span>
@@ -242,18 +278,11 @@ const TeacherDashboard = () => {
             <div className="row mb-4">
               <div className="col-12 text-center">
                 <button
-                  className="btn btn-primary btn-lg me-3"
+                  className="btn btn-primary btn-lg"
                   onClick={() => setShowCreateTestModal(true)}
                 >
                   <i className="bi bi-plus-circle me-2"></i>
                   Create New Test
-                </button>
-                <button
-                  className="btn btn-success btn-lg"
-                  onClick={() => navigate("/test-results-view")}
-                >
-                  <i className="bi bi-bar-chart-fill me-2"></i>
-                  View Results
                 </button>
               </div>
             </div>
@@ -282,15 +311,28 @@ const TeacherDashboard = () => {
                               <h5 className="mb-1">{test.title}</h5>
                               <p className="text-muted mb-0">{test.description}</p>
                             </div>
-                            <button
-                              className="btn btn-sm btn-outline-danger"
-                              onClick={() => handleDeleteTest(test._id)}
-                            >
-                              <i className="bi bi-trash"></i>
-                            </button>
+                            <div className="d-flex gap-2">
+                              <button
+                                className="btn btn-sm btn-primary"
+                                onClick={() => navigate(`/test-results/${test._id}`)}
+                              >
+                                <i className="bi bi-bar-chart-fill me-1"></i>
+                                View Results
+                              </button>
+                              <button
+                                className="btn btn-sm btn-outline-danger"
+                                onClick={() => handleDeleteTest(test._id)}
+                              >
+                                <i className="bi bi-trash"></i>
+                              </button>
+                            </div>
                           </div>
                           <div className="test-meta">
                             <span className="badge bg-info">{test.subject}</span>
+                            <span className="badge bg-dark">
+                              <i className="bi bi-building me-1"></i>
+                              {test.branch}
+                            </span>
                             <span className="badge bg-secondary">{test.totalQuestions} Questions</span>
                             <span className="badge bg-primary">
                               <i className="bi bi-clock me-1"></i>
@@ -344,20 +386,6 @@ const TeacherDashboard = () => {
 
                 <form onSubmit={handleAddQuestion}>
                   <div className="row g-3">
-                    <div className="col-12">
-                      <label className="form-label fw-semibold">Difficulty *</label>
-                      <select
-                        className="form-select"
-                        value={questionForm.difficulty}
-                        onChange={(e) => setQuestionForm({...questionForm, difficulty: e.target.value})}
-                        required
-                      >
-                        <option value="Easy">Easy</option>
-                        <option value="Medium">Medium</option>
-                        <option value="Hard">Hard</option>
-                      </select>
-                    </div>
-
                     <div className="col-12">
                       <label className="form-label fw-semibold">Question *</label>
                       <textarea
@@ -447,12 +475,6 @@ const TeacherDashboard = () => {
                       <div className="d-flex justify-content-between align-items-start">
                         <div className="flex-grow-1">
                           <span className="question-number">Q{index + 1}</span>
-                          <span className={`badge bg-${
-                            q.difficulty === 'Easy' ? 'success' :
-                            q.difficulty === 'Medium' ? 'warning' : 'danger'
-                          } ms-2`}>
-                            {q.difficulty}
-                          </span>
                           <p className="question-text mt-2">{q.question}</p>
                         </div>
                         <i className="bi bi-check-circle-fill text-success fs-4"></i>
@@ -492,32 +514,46 @@ const TeacherDashboard = () => {
                 </div>
 
                 <div className="mb-3">
-                  <label className="form-label fw-semibold">Description *</label>
+                  <label className="form-label fw-semibold">Description</label>
                   <textarea
                     className="form-control"
                     rows="2"
                     value={testDetails.description}
                     onChange={(e) => setTestDetails({...testDetails, description: e.target.value})}
-                    placeholder="Brief description of the test"
-                    required
+                    placeholder="Brief description of the test (optional)"
                   />
+                  <small className="text-muted">Optional - Add a description to help students understand the test</small>
                 </div>
 
                 <div className="mb-3">
                   <label className="form-label fw-semibold">Subject *</label>
-                  <select
-                    className="form-select"
+                  <input
+                    type="text"
+                    className="form-control"
                     value={testDetails.subject}
                     onChange={(e) => setTestDetails({...testDetails, subject: e.target.value})}
+                    placeholder="e.g., JavaScript, React, Data Structures, etc."
+                    required
+                  />
+                  <small className="text-muted">Enter the subject or topic name</small>
+                </div>
+
+                <div className="mb-3">
+                  <label className="form-label fw-semibold">Branch *</label>
+                  <select
+                    className="form-select"
+                    value={testDetails.branch}
+                    onChange={(e) => setTestDetails({...testDetails, branch: e.target.value})}
                     required
                   >
-                    <option value="">-- Select Subject --</option>
-                    {subjects.map((subject) => (
-                      <option key={subject} value={subject}>
-                        {subject}
+                    <option value="">-- Select Branch --</option>
+                    {branches.map((branch) => (
+                      <option key={branch} value={branch}>
+                        {branch}
                       </option>
                     ))}
                   </select>
+                  <small className="text-muted">Test will be visible only to students of this branch</small>
                 </div>
 
                 <div className="mb-3">
@@ -526,12 +562,15 @@ const TeacherDashboard = () => {
                     type="number"
                     className="form-control"
                     min="1"
-                    max="50"
                     value={testDetails.totalQuestions}
-                    onChange={(e) => setTestDetails({...testDetails, totalQuestions: parseInt(e.target.value) || 0})}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value) || 1;
+                      setTestDetails({...testDetails, totalQuestions: Math.max(1, value)});
+                    }}
                     placeholder="Enter number of questions"
                     required
                   />
+                  <small className="text-muted">Minimum 1 question required</small>
                 </div>
 
                 <div className="mb-3">
@@ -539,14 +578,16 @@ const TeacherDashboard = () => {
                   <input
                     type="number"
                     className="form-control"
-                    min="5"
-                    max="180"
+                    min="1"
                     value={testDetails.timeLimit}
-                    onChange={(e) => setTestDetails({...testDetails, timeLimit: parseInt(e.target.value) || 30})}
-                    placeholder="e.g., 30"
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value) || 1;
+                      setTestDetails({...testDetails, timeLimit: Math.max(1, value)});
+                    }}
+                    placeholder="Enter time in minutes"
                     required
                   />
-                  <small className="text-muted">Students will have this much time to complete the test</small>
+                  <small className="text-muted">Minimum 1 minute required</small>
                 </div>
               </div>
               <div className="modal-footer">
@@ -567,6 +608,27 @@ const TeacherDashboard = () => {
       <footer className="footer-custom text-center py-3">
         © {new Date().getFullYear()} Teacher Dashboard - AI Student
       </footer>
+
+      {/* Toast Notification */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
+
+      {/* Confirm Modal */}
+      {confirmModal && (
+        <ConfirmModal
+          message={confirmModal.message}
+          onConfirm={confirmModal.onConfirm}
+          onCancel={confirmModal.onCancel}
+          confirmText={confirmModal.confirmText}
+          cancelText={confirmModal.cancelText || "Cancel"}
+          type={confirmModal.type}
+        />
+      )}
     </div>
   );
 };
