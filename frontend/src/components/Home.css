@@ -1,0 +1,426 @@
+/* ============================================
+   HOME PAGE STYLES - Student Dashboard
+   ============================================ */
+
+.home-wrapper {
+  min-height: 100vh;
+  background: var(--bg-gradient);
+  display: flex;
+  flex-direction: column;
+  font-family: var(--font-family);
+}
+
+/* Navbar */
+.navbar-custom {
+  background: var(--primary-gradient);
+  backdrop-filter: blur(10px);
+  padding: 1rem 2rem;
+  box-shadow: var(--shadow-xl);
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+  border-bottom: 3px solid rgba(255, 255, 255, 0.1);
+}
+
+.navbar-brand {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-extrabold);
+  color: var(--text-inverse);
+  margin: 0;
+  letter-spacing: -0.5px;
+}
+
+/* Profile Dropdown */
+.profile-dropdown-container {
+  position: relative;
+}
+
+.profile-icon-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: var(--radius-full);
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  backdrop-filter: blur(10px);
+}
+
+.profile-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: scale(1.08);
+}
+
+.profile-icon-btn i {
+  font-size: 1.75rem;
+  color: var(--text-inverse);
+}
+
+.dropdown-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: var(--z-modal-backdrop);
+}
+
+.profile-dropdown {
+  position: absolute;
+  top: 60px;
+  right: 0;
+  background: var(--bg-primary);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-2xl);
+  width: 320px;
+  z-index: var(--z-dropdown);
+  animation: dropdownSlide 0.3s ease;
+  overflow: hidden;
+  border: 1px solid var(--border-light);
+}
+
+@keyframes dropdownSlide {
+  from {
+    opacity: 0;
+    transform: translateY(-15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dropdown-header {
+  background: var(--primary-gradient);
+  padding: 1.75rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.dropdown-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-full);
+  background: var(--bg-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.75rem;
+  font-weight: var(--font-weight-extrabold);
+  color: var(--primary-solid);
+  box-shadow: var(--shadow-lg);
+}
+
+.dropdown-info {
+  flex: 1;
+}
+
+.dropdown-name {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-inverse);
+  margin-bottom: 0.5rem;
+}
+
+.dropdown-detail {
+  font-size: var(--font-size-sm);
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 0.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.dropdown-actions {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.dropdown-btn {
+  width: 100%;
+  padding: 0.875rem 1.5rem;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.view-profile-btn {
+  background: var(--primary-gradient);
+  color: var(--text-inverse);
+  box-shadow: var(--shadow-colored);
+}
+
+.view-profile-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+}
+
+.logout-btn {
+  background: var(--gray-100);
+  color: var(--text-primary);
+  border: 2px solid var(--border-light);
+}
+
+.logout-btn:hover {
+  background: var(--danger-gradient);
+  color: var(--text-inverse);
+  border-color: transparent;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(239, 68, 68, 0.3);
+}
+
+/* Landing Container */
+.landing-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-3xl) var(--spacing-lg);
+}
+
+.landing-title {
+  font-size: var(--font-size-5xl);
+  font-weight: var(--font-weight-extrabold);
+  text-align: center;
+  margin-bottom: var(--spacing-3xl);
+  background: var(--primary-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: fadeIn 0.8s ease-out;
+  letter-spacing: -1px;
+}
+
+/* .options-container {
+  display: flex;
+  gap: var(--spacing-2xl);
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: 900px;
+} */
+
+.options-container {
+  display: flex;
+  gap: var(--spacing-2xl);
+  flex-wrap: nowrap;   /* prevent wrapping */
+  justify-content: center;
+  max-width: 1200px;   /* increase width so 3 cards fit */
+}
+
+
+/* Option Cards */
+.option-card {
+  background: var(--bg-primary);
+  border-radius: var(--radius-xl);
+  padding: var(--spacing-2xl);
+  width: 100%;
+  max-width: 380px;
+  min-height: 320px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  text-decoration: none;
+  border: 3px solid var(--border-light);
+  box-shadow: var(--shadow-lg);
+  transition: all var(--transition-base);
+  position: relative;
+  overflow: hidden;
+  animation: fadeIn 0.8s ease-out;
+}
+
+.option-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 6px;
+  background: var(--primary-gradient);
+  transform: scaleX(0);
+  transition: transform var(--transition-base);
+}
+
+.option-card:hover::before {
+  transform: scaleX(1);
+}
+
+.option-card:hover {
+  transform: translateY(-12px) scale(1.02);
+  box-shadow: var(--shadow-2xl);
+  border-color: var(--primary-solid);
+}
+
+.option-card-primary {
+  animation-delay: 0.1s;
+}
+
+.option-card-success {
+  animation-delay: 0.2s;
+}
+
+.option-card-primary:hover .option-icon {
+  background: var(--primary-gradient);
+}
+
+.option-card-success:hover .option-icon {
+  background: var(--success-gradient);
+}
+
+.option-icon {
+  width: 100px;
+  height: 100px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--spacing-lg);
+  background: var(--gray-100);
+  transition: all var(--transition-base);
+  box-shadow: var(--shadow-md);
+}
+
+.option-icon i {
+  font-size: 3rem;
+  color: var(--primary-solid);
+  transition: all var(--transition-base);
+}
+
+.option-card:hover .option-icon i {
+  color: var(--text-inverse);
+  transform: scale(1.15) rotate(5deg);
+}
+
+.option-title {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-md);
+  transition: color var(--transition-base);
+}
+
+.option-card:hover .option-title {
+  color: var(--primary-solid);
+}
+
+.option-desc {
+  font-size: var(--font-size-base);
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Footer */
+.footer-custom {
+  background: rgba(102, 126, 234, 0.05);
+  padding: var(--spacing-xl);
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  border-top: 1px solid var(--border-light);
+  margin-top: auto;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .landing-title {
+    font-size: var(--font-size-4xl);
+  }
+
+  .options-container {
+    gap: var(--spacing-xl);
+  }
+
+  .option-card {
+    max-width: 350px;
+    min-height: 280px;
+  }
+}
+
+/* @media (max-width: 768px) {
+  .navbar-custom {
+    padding: 1rem 1.5rem;
+  } */
+
+  @media (max-width: 768px) {
+  .options-container {
+    flex-direction: row;   /* keep horizontal */
+    gap: var(--spacing-lg);
+    width: 100%;
+    overflow-x: auto;      /* allows scroll if screen small */
+  }
+}
+
+
+  .navbar-brand {
+    font-size: var(--font-size-xl);
+  }
+
+  .landing-title {
+    font-size: var(--font-size-3xl);
+  }
+
+  .options-container {
+    flex-direction: column;
+    gap: var(--spacing-lg);
+    width: 100%;
+  }
+
+  .option-card {
+    max-width: 300px;
+    min-height: 260px;
+  }
+
+  .option-icon {
+    width: 80px;
+    height: 80px;
+  }
+
+  .option-icon i {
+    font-size: 2.5rem;
+  }
+
+  .profile-dropdown {
+    width: 280px;
+  }
+
+
+@media (max-width: 640px) {
+  .landing-container {
+    padding: var(--spacing-xl) var(--spacing-md);
+  }
+
+  .landing-title {
+    font-size: var(--font-size-2xl);
+    margin-bottom: var(--spacing-xl);
+  }
+
+  .option-card {
+    padding: var(--spacing-xl);
+    min-height: 240px;
+  }
+
+  .option-title {
+    font-size: var(--font-size-xl);
+  }
+
+  .option-desc {
+    font-size: var(--font-size-sm);
+  }
+}

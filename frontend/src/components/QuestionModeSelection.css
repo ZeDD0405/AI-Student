@@ -1,0 +1,288 @@
+/* Question Mode Selection - Modern Design */
+
+.mode-selection-wrapper {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 60px 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+.mode-selection-wrapper::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background:
+    radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+.mode-selection-container {
+  max-width: 1100px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+}
+
+/* Header */
+.mode-header {
+  text-align: center;
+  margin-bottom: 70px;
+  animation: fadeInDown 0.8s ease;
+}
+
+.mode-title {
+  font-size: 3.5rem;
+  font-weight: 700;
+  color: #ffffff;
+  text-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  margin-bottom: 15px;
+  letter-spacing: -1px;
+}
+
+.mode-subtitle {
+  font-size: 1.3rem;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 300;
+}
+
+/* Mode Cards Container */
+.mode-cards-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+  gap: 40px;
+  margin-bottom: 60px;
+}
+
+.mode-card {
+  background: #ffffff;
+  border-radius: 25px;
+  padding: 50px 40px;
+  cursor: pointer;
+  transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+  position: relative;
+  overflow: hidden;
+  animation: fadeInUp 0.8s ease backwards;
+}
+
+.mode-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, transparent 0%, rgba(0, 0, 0, 0.03) 100%);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.mode-card:hover::before {
+  opacity: 1;
+}
+
+.mode-card:hover {
+  transform: translateY(-15px) scale(1.02);
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.3);
+}
+
+.add-mode {
+  animation-delay: 0.2s;
+}
+
+.view-mode {
+  animation-delay: 0.4s;
+}
+
+/* Mode Icon */
+.mode-icon {
+  width: 120px;
+  height: 120px;
+  margin: 0 auto 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: all 0.4s ease;
+}
+
+.add-icon {
+  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+  box-shadow: 0 15px 35px rgba(17, 153, 142, 0.4);
+}
+
+.view-icon {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  box-shadow: 0 15px 35px rgba(102, 126, 234, 0.4);
+}
+
+.mode-card:hover .mode-icon {
+  transform: scale(1.15) rotate(10deg);
+}
+
+.icon-main {
+  font-size: 3.5rem;
+  position: relative;
+  z-index: 2;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+}
+
+.icon-bg {
+  position: absolute;
+  font-size: 2rem;
+  opacity: 0.3;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1;
+}
+
+/* Card Content */
+.mode-card-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 15px;
+  text-align: center;
+}
+
+.mode-card-description {
+  font-size: 1.1rem;
+  color: #666;
+  text-align: center;
+  margin-bottom: 30px;
+  line-height: 1.6;
+}
+
+.mode-features {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 35px 0;
+}
+
+.mode-features li {
+  font-size: 1.05rem;
+  color: #555;
+  margin-bottom: 12px;
+  padding-left: 10px;
+  transition: all 0.3s ease;
+}
+
+.mode-card:hover .mode-features li {
+  color: #333;
+  padding-left: 15px;
+}
+
+.mode-action {
+  text-align: center;
+  font-size: 1.2rem;
+  font-weight: 600;
+  padding: 15px;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.add-mode .mode-action {
+  background: linear-gradient(135deg, rgba(17, 153, 142, 0.1) 0%, rgba(56, 239, 125, 0.1) 100%);
+  color: #11998e;
+}
+
+.view-mode .mode-action {
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+  color: #667eea;
+}
+
+.mode-card:hover .mode-action {
+  transform: scale(1.05);
+}
+
+.add-mode:hover .mode-action {
+  background: linear-gradient(135deg, rgba(17, 153, 142, 0.2) 0%, rgba(56, 239, 125, 0.2) 100%);
+}
+
+.view-mode:hover .mode-action {
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%);
+}
+
+/* Back Button */
+.back-home-btn {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  padding: 14px 40px;
+  border-radius: 12px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  display: block;
+  margin: 0 auto;
+}
+
+.back-home-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.8);
+  transform: translateX(-5px);
+}
+
+/* Animations */
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .mode-cards-container {
+    grid-template-columns: 1fr;
+    max-width: 600px;
+    margin: 0 auto 60px;
+  }
+}
+
+@media (max-width: 768px) {
+  .mode-title {
+    font-size: 2.5rem;
+  }
+
+  .mode-card {
+    padding: 40px 30px;
+  }
+
+  .mode-icon {
+    width: 100px;
+    height: 100px;
+  }
+
+  .icon-main {
+    font-size: 3rem;
+  }
+
+  .mode-card-title {
+    font-size: 1.7rem;
+  }
+}
